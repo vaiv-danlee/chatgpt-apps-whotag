@@ -1,0 +1,15 @@
+{
+  "name": "influencer-search-app",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "install:all": "pnpm install && cd server && pnpm install && cd ../web && pnpm install",
+    "build:web": "cd web && pnpm run build",
+    "build:server": "cd server && pnpm run build",
+    "build": "pnpm run build:web && pnpm run build:server",
+    "dev:server": "cd server && pnpm run dev",
+    "dev:web": "cd web && pnpm run dev",
+    "start": "cd server && pnpm start",
+    "test": "curl http://localhost:3000/health"
+  }
+}
