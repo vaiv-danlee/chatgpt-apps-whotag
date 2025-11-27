@@ -1,22 +1,12 @@
 import React from 'react';
+import { Profile } from '../types';
 
 interface ProfileCardProps {
-  profile: {
-    user_id: string;
-    username: string;
-    full_name: string;
-    title: string;
-    followed_by: number;
-    primaryImage?: string;
-    country?: string | string[];
-    links?: Array<{
-      platform: string;
-      urls: string[];
-    }>;
-  };
+  profile: Profile;
+  onClick?: () => void;
 }
 
-const ProfileCard: React.FC<ProfileCardProps> = ({ profile }) => {
+const ProfileCard: React.FC<ProfileCardProps> = ({ profile, onClick }) => {
   const formatFollowers = (count: number): string => {
     if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
     if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
@@ -89,7 +79,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile }) => {
   };
 
   return (
-    <div className="profile-card">
+    <div className="profile-card" onClick={onClick}>
       <div
         className="profile-background"
         style={{ backgroundImage: `url(${profile.primaryImage || 'https://via.placeholder.com/300x400'})` }}
@@ -104,7 +94,10 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile }) => {
               <button
                 key={idx}
                 className="action-btn"
-                onClick={() => window.open(link.urls[0], '_blank')}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.openai?.openExternal({ href: link.urls[0] });
+                }}
                 title={link.platform}
               >
                 {getPlatformIcon(link.platform)}
@@ -117,7 +110,10 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile }) => {
       <div className="profile-info">
         <h4
           className="username"
-          onClick={() => window.open(`https://www.instagram.com/${profile.username}`, '_blank')}
+          onClick={(e) => {
+            e.stopPropagation();
+            window.openai?.openExternal({ href: `https://www.instagram.com/${profile.username}` });
+          }}
         >
           @{profile.username}
         </h4>

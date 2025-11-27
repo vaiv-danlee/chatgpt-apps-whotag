@@ -17,7 +17,12 @@ declare global {
       callTool: (name: string, args: any) => Promise<any>;
       sendFollowUpMessage: (args: { prompt: string }) => Promise<void>;
       openExternal: (payload: { href: string }) => void;
-      requestDisplayMode: (args: { mode: string }) => Promise<any>;
+      requestDisplayMode: (args: { mode: 'inline' | 'fullscreen' | 'pip' }) => Promise<any>;
+      displayInfo?: {
+        mode: 'inline' | 'fullscreen' | 'pip';
+        maxHeight?: number;
+        maxWidth?: number;
+      };
     };
   }
 
@@ -45,5 +50,20 @@ export function useOpenAiGlobal<K extends keyof OpenAiGlobals>(
       };
     },
     () => window.openai?.[key]
+  );
+}
+
+export function useDisplayMode(): 'inline' | 'fullscreen' | 'pip' | undefined {
+  return useSyncExternalStore(
+    (onChange) => {
+      const handleSetGlobal = () => onChange();
+      window.addEventListener('openai:set_globals', handleSetGlobal);
+      window.addEventListener('resize', handleSetGlobal);
+      return () => {
+        window.removeEventListener('openai:set_globals', handleSetGlobal);
+        window.removeEventListener('resize', handleSetGlobal);
+      };
+    },
+    () => window.openai?.displayInfo?.mode
   );
 }

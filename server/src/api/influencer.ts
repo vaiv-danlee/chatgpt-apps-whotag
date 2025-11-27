@@ -47,7 +47,7 @@ export async function getInfluencerBatch(userIds: string[]): Promise<InfluencerP
 
 export async function getRepresentativeImages(userId: string): Promise<ImageResponse['item']> {
   const token = await getAccessToken();
-  
+
   const response = await fetch(
     `https://dev.whotag.ai/api/v1/influencers/images/${userId}/representative/url`,
     {
@@ -64,4 +64,39 @@ export async function getRepresentativeImages(userId: string): Promise<ImageResp
 
   const data = await response.json();
   return data.item || [];
+}
+
+export async function getGridImages(userId: string): Promise<ImageResponse['item']> {
+  const token = await getAccessToken();
+
+  console.error(`\n>>> Calling grid API for user: ${userId}`);
+  const response = await fetch(
+    `https://dev.whotag.ai/api/v1/influencers/images/${userId}/grid/url`,
+    {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    console.error(`!!! Failed to fetch grid images for ${userId}, status: ${response.status}`);
+    return [];
+  }
+
+  const data = await response.json();
+  console.error(`>>> Grid API response:`, JSON.stringify(data, null, 2));
+
+  // Grid API returns a single object with image_url, wrap it in an array
+  if (data.item && data.item.image_url) {
+    const result = [{
+      post_id: data.item.user_id || userId,
+      image_url: data.item.image_url
+    }];
+    console.error(`>>> Returning grid images:`, result);
+    return result;
+  }
+
+  console.error(`>>> No grid image found in response`);
+  return [];
 }

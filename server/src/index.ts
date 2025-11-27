@@ -1,14 +1,19 @@
-import express from 'express';
-import cors from 'cors';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
-import { z } from 'zod';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
-import * as dotenv from 'dotenv';
+import express from "express";
+import cors from "cors";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+import { z } from "zod";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+import * as dotenv from "dotenv";
 
-import { searchInfluencers, getInfluencerBatch, getRepresentativeImages } from './api/influencer.js';
+import {
+  searchInfluencers,
+  getInfluencerBatch,
+  getRepresentativeImages,
+  getGridImages,
+} from "./api/influencer.js";
 
 dotenv.config();
 
@@ -24,26 +29,28 @@ function getServerUrl(req: express.Request): string {
   if (process.env.SERVER_URL) {
     return process.env.SERVER_URL;
   }
-  
+
   // 2. When behind Cloud Run or proxy (use X-Forwarded-* headers)
-  const protocol = req.get('x-forwarded-proto') || req.protocol;
-  const host = req.get('x-forwarded-host') || req.get('host');
-  
+  const protocol = req.get("x-forwarded-proto") || req.protocol;
+  const host = req.get("x-forwarded-host") || req.get("host");
+
   if (host) {
     return `${protocol}://${host}`;
   }
-  
+
   // 3. Default for local development environment
   return `http://localhost:${PORT}`;
 }
 
 // Middleware
-app.use(cors({
-  origin: ['https://chatgpt.com', 'https://chat.openai.com'],
-  credentials: true,
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+app.use(
+  cors({
+    origin: ["https://chatgpt.com", "https://chat.openai.com"],
+    credentials: true,
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 app.use(express.json());
 
 // Request logging
@@ -53,21 +60,29 @@ app.use((req, _res, next) => {
 });
 
 // Load React component
-let COMPONENT_JS = '';
-let COMPONENT_CSS = '';
+let COMPONENT_JS = "";
+let COMPONENT_CSS = "";
 
 try {
-  COMPONENT_JS = readFileSync(join(__dirname, '../../web/dist/component.js'), 'utf8');
-  COMPONENT_CSS = readFileSync(join(__dirname, '../../web/dist/style.css'), 'utf8');
-  console.error('Component files loaded successfully');
+  COMPONENT_JS = readFileSync(
+    join(__dirname, "../../web/dist/component.js"),
+    "utf8"
+  );
+  COMPONENT_CSS = readFileSync(
+    join(__dirname, "../../web/dist/style.css"),
+    "utf8"
+  );
+  console.error("Component files loaded successfully");
 } catch (error) {
-  console.error('Warning: Component files not found. Run pnpm run build in web directory.');
+  console.error(
+    "Warning: Component files not found. Run pnpm run build in web directory."
+  );
 }
 
 // Create MCP server
 const server = new McpServer({
-  name: 'influencer-search',
-  version: '1.0.0',
+  name: "influencer-search",
+  version: "1.0.0",
 });
 
 // Session management
@@ -75,102 +90,193 @@ const transports: Record<string, SSEServerTransport> = {};
 
 // Register UI resource
 server.registerResource(
-  'widget',
-  'ui://widget/carousel.html',
+  "widget",
+  "ui://widget/carousel.html",
   {},
   async () => ({
-    contents: [{
-      uri: 'ui://widget/carousel.html',
-      mimeType: 'text/html+skybridge',
-      text: `
+    contents: [
+      {
+        uri: "ui://widget/carousel.html",
+        mimeType: "text/html+skybridge",
+        text: `
 <div id="root"></div>
 <style>${COMPONENT_CSS}</style>
 <script type="module">${COMPONENT_JS}</script>
       `.trim(),
-      _meta: {
-        'openai/widgetDescription': 'Displays influencer profiles in carousel format',
-        'openai/widgetPrefersBorder': true,
-        'openai/widgetDomain': 'https://chatgpt.com',
-        'openai/widgetCSP': {
-          connect_domains: [
-            'https://dev.whotag.ai',
-            'https://cdn.whotag.ai',
-          ],
-          resource_domains: [
-            'https://cdn.whotag.ai',
-            'https://*.oaistatic.com',
-          ],
+        _meta: {
+          "openai/widgetDescription":
+            "Displays influencer profiles in carousel format",
+          "openai/widgetPrefersBorder": true,
+          "openai/widgetDomain": "https://whotag.ai",
+          "openai/widgetCSP": {
+            connect_domains: ["https://dev.whotag.ai", "https://cdn.whotag.ai"],
+            resource_domains: [
+              "https://cdn.whotag.ai",
+              "https://*.oaistatic.com",
+            ],
+          },
         },
       },
-    }],
+    ],
   })
 );
 
 // Register search tool
 server.registerTool(
-  'search_influencers',
+  "search_influencers",
   {
-    title: 'Search Influencers',
-    description: 'Search influencers using natural language query',
+    title: "Search Influencers",
+    description: "Search influencers using natural language query",
     inputSchema: {
-      query: z.string().describe('Natural language search query (e.g., parenting influencers in South Korea)'),
-      limit: z.number().min(1).max(6).default(6).optional().describe('Maximum number of results (max 6)'),
+      query: z
+        .string()
+        .describe(
+          "Natural language search query (e.g., parenting influencers in South Korea)"
+        ),
+      limit: z
+        .number()
+        .min(1)
+        .max(6)
+        .default(6)
+        .optional()
+        .describe("Maximum number of results (max 6)"),
     },
     _meta: {
-      'openai/outputTemplate': 'ui://widget/carousel.html',
-      'openai/widgetAccessible': true,
-      'openai/toolInvocation/invoking': 'Searching for influencers...',
-      'openai/toolInvocation/invoked': 'Loaded influencer profiles',
+      "openai/outputTemplate": "ui://widget/carousel.html",
+      "openai/widgetAccessible": true,
+      "openai/toolInvocation/invoking": "Searching for influencers...",
+      "openai/toolInvocation/invoked": "Loaded influencer profiles",
     },
   },
   async (args) => {
     try {
-      console.error(`Searching for: ${args.query}`);
-      
+      console.error(`\n\n========================================`);
+      console.error(`🔍 NEW SEARCH REQUEST: "${args.query}"`);
+      console.error(`Limit: ${args.limit || 6}`);
+      console.error(`========================================\n`);
+
       // 1. Natural language search
       const searchResults = await searchInfluencers(args.query);
-      
+
       // When no search results found
-      if (!searchResults.item.influencers || searchResults.item.influencers.length === 0) {
+      if (
+        !searchResults.item.influencers ||
+        searchResults.item.influencers.length === 0
+      ) {
         return {
-          content: [{
-            type: 'text',
-            text: 'No search results found. Please try a different query.',
-          }],
+          content: [
+            {
+              type: "text",
+              text: "No search results found. Please try a different query.",
+            },
+          ],
         };
       }
-      
+
       // 2. Fetch details (apply limit - max 6)
       const limitValue = Math.min(args.limit || 6, 6);
       const userIds = searchResults.item.influencers.slice(0, limitValue);
       const profiles = await getInfluencerBatch(userIds);
-      
-      // 3. Fetch representative images in parallel
+
+      // 3. Fetch representative and grid images in parallel
       const profilesWithImages = await Promise.all(
         profiles.map(async (profile) => {
           try {
-            const images = await getRepresentativeImages(profile.profile.user_id);
-            return {
+            console.error(
+              `\n=== FETCHING IMAGES FOR ${profile.profile.username} ===`
+            );
+            const [representativeImages, gridImages] = await Promise.all([
+              getRepresentativeImages(profile.profile.user_id),
+              getGridImages(profile.profile.user_id),
+            ]);
+
+            console.error(`Representative images:`, representativeImages);
+            console.error(`Grid images:`, gridImages);
+            console.error(
+              `Grid images URLs:`,
+              gridImages.map((img) => img.image_url)
+            );
+
+            const result = {
               user_id: profile.profile.user_id,
               username: profile.profile.username,
               full_name: profile.profile.full_name,
-              title: profile.general?.title || profile.general?.demo_short || '',
+              title:
+                profile.general?.title || profile.general?.demo_short || "",
               followed_by: profile.profile.followed_by,
-              primaryImage: images[0]?.image_url || profile.profile.profile_pic_url,
+              follows: profile.profile.follows,
+              media_count: profile.profile.media_count,
+              primaryImage:
+                representativeImages[0]?.image_url ||
+                profile.profile.profile_pic_url,
+              gridImages: gridImages.map((img) => img.image_url),
               links: profile.links?.links || [],
               country: profile.general?.country || [],
+              // Additional marketing information
+              biography: profile.profile.biography,
+              engagement_rate: profile.profile.engagement_rate,
+              engagement_rate_tag: profile.profile.engagement_rate_tag,
+              collaboration_tier: profile.general?.collaboration_tier,
+              collaborate_brand: profile.general?.collaborate_brand || [],
+              account_type: profile.general?.account_type,
+              willing_to_collaborate: profile.general?.willing_to_collaborate,
+              note_for_brand_collaborate_point:
+                profile.general?.note_for_brand_collaborate_point || [],
+              note_for_brand_weak_point:
+                profile.general?.note_for_brand_weak_point || [],
+              tag_brand: profile.general?.tag_brand || [],
+              language: profile.general?.language || [],
+              age_range: profile.general?.age_range,
+              interests: profile.general?.interests || [],
+              field_of_creator: profile.general?.field_of_creator || [],
+              demo_short: profile.general?.demo_short,
+              profile_pic_url: profile.profile.profile_pic_url,
             };
+
+            console.error(
+              `Final profile result:`,
+              JSON.stringify(result, null, 2)
+            );
+            console.error(`===================================\n`);
+
+            return result;
           } catch (error) {
-            console.error(`Failed to fetch images for ${profile.profile.username}:`, error);
+            console.error(
+              `Failed to fetch images for ${profile.profile.username}:`,
+              error
+            );
             return {
               user_id: profile.profile.user_id,
               username: profile.profile.username,
               full_name: profile.profile.full_name,
-              title: profile.general?.title || profile.general?.demo_short || '',
+              title:
+                profile.general?.title || profile.general?.demo_short || "",
               followed_by: profile.profile.followed_by,
+              follows: profile.profile.follows,
+              media_count: profile.profile.media_count,
               primaryImage: profile.profile.profile_pic_url,
+              gridImages: [],
               links: profile.links?.links || [],
               country: profile.general?.country || [],
+              // Additional marketing information
+              biography: profile.profile.biography,
+              engagement_rate: profile.profile.engagement_rate,
+              engagement_rate_tag: profile.profile.engagement_rate_tag,
+              collaboration_tier: profile.general?.collaboration_tier,
+              collaborate_brand: profile.general?.collaborate_brand || [],
+              account_type: profile.general?.account_type,
+              willing_to_collaborate: profile.general?.willing_to_collaborate,
+              note_for_brand_collaborate_point:
+                profile.general?.note_for_brand_collaborate_point || [],
+              note_for_brand_weak_point:
+                profile.general?.note_for_brand_weak_point || [],
+              tag_brand: profile.general?.tag_brand || [],
+              language: profile.general?.language || [],
+              age_range: profile.general?.age_range,
+              interests: profile.general?.interests || [],
+              field_of_creator: profile.general?.field_of_creator || [],
+              demo_short: profile.general?.demo_short,
+              profile_pic_url: profile.profile.profile_pic_url,
             };
           }
         })
@@ -192,8 +298,10 @@ server.registerTool(
         engagement_rate_tag: profile.profile.engagement_rate_tag,
         account_type: profile.general?.account_type,
         willing_to_collaborate: profile.general?.willing_to_collaborate,
-        note_for_brand_collaborate_point: profile.general?.note_for_brand_collaborate_point || [],
-        note_for_brand_weak_point: profile.general?.note_for_brand_weak_point || [],
+        note_for_brand_collaborate_point:
+          profile.general?.note_for_brand_collaborate_point || [],
+        note_for_brand_weak_point:
+          profile.general?.note_for_brand_weak_point || [],
         tag_brand: profile.general?.tag_brand || [],
 
         // Demographics & target (6 items)
@@ -217,13 +325,13 @@ server.registerTool(
         },
         content: [
           {
-            type: 'text',
+            type: "text",
             text: `Found ${searchResults.item.total_count} influencers. Search results for "${args.query}".`,
           },
         ],
         _meta: {
-          'openai/outputTemplate': 'ui://widget/carousel.html',
-          'openai/widgetAccessible': true,
+          "openai/outputTemplate": "ui://widget/carousel.html",
+          "openai/widgetAccessible": true,
           allProfiles: profilesWithImages,
           searchMetadata: {
             query: args.query,
@@ -235,13 +343,16 @@ server.registerTool(
         },
       };
     } catch (error) {
-      console.error('Search error:', error);
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error("Search error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       return {
-        content: [{
-          type: 'text',
-          text: `An error occurred during search: ${errorMessage}`,
-        }],
+        content: [
+          {
+            type: "text",
+            text: `An error occurred during search: ${errorMessage}`,
+          },
+        ],
         isError: true,
       };
     }
@@ -249,59 +360,59 @@ server.registerTool(
 );
 
 // Health check
-app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get("/health", (_req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
 // MCP manifest endpoint (GET) - ChatGPT Apps discovery
-app.get('/mcp', (req, res) => {
+app.get("/mcp", (req, res) => {
   const serverUrl = getServerUrl(req);
-  console.error('GET /mcp - returning discovery document');
+  console.error("GET /mcp - returning discovery document");
   console.error(`Server URL: ${serverUrl}`);
   res.json({
-    openapi: '3.1.0',
+    openapi: "3.1.0",
     info: {
-      title: 'Influencer Search MCP',
-      version: '1.0.0',
-      description: 'MCP server for influencer search',
+      title: "Influencer Search MCP",
+      version: "1.0.0",
+      description: "MCP server for influencer search",
     },
     servers: [
       {
         url: serverUrl,
       },
     ],
-    'x-mcp': {
-      protocolVersion: '2025-03-26',
+    "x-mcp": {
+      protocolVersion: "2025-03-26",
       capabilities: {
         tools: {},
         resources: {},
       },
       transport: {
-        type: 'sse',
-        url: '/mcp/sse',
+        type: "sse",
+        url: "/mcp/sse",
       },
     },
   });
 });
 
 // MCP manifest endpoint (POST) - ChatGPT sends JSON-RPC requests
-app.post('/mcp', async (req, res) => {
-  console.error('POST /mcp body:', JSON.stringify(req.body, null, 2));
+app.post("/mcp", async (req, res) => {
+  console.error("POST /mcp body:", JSON.stringify(req.body, null, 2));
 
   const { method, id, params } = req.body;
 
   try {
     switch (method) {
-      case 'initialize':
-        console.error('Received initialize request');
+      case "initialize":
+        console.error("Received initialize request");
         res.json({
-          jsonrpc: '2.0',
+          jsonrpc: "2.0",
           id: id,
           result: {
-            protocolVersion: params?.protocolVersion || '2025-03-26',
+            protocolVersion: params?.protocolVersion || "2025-03-26",
             serverInfo: {
-              name: 'influencer-search',
-              version: '1.0.0',
+              name: "influencer-search",
+              version: "1.0.0",
             },
             capabilities: {
               tools: {},
@@ -311,44 +422,46 @@ app.post('/mcp', async (req, res) => {
         });
         break;
 
-      case 'notifications/initialized':
-        console.error('Received initialized notification');
+      case "notifications/initialized":
+        console.error("Received initialized notification");
         // Notifications don't require a response
         res.status(200).end();
         break;
 
-      case 'tools/list':
-        console.error('Received tools/list request');
+      case "tools/list":
+        console.error("Received tools/list request");
         res.json({
-          jsonrpc: '2.0',
+          jsonrpc: "2.0",
           id: id,
           result: {
             tools: [
               {
-                name: 'search_influencers',
-                description: 'Search influencers using natural language query',
+                name: "search_influencers",
+                description: "Search influencers using natural language query",
                 inputSchema: {
-                  type: 'object',
+                  type: "object",
                   properties: {
                     query: {
-                      type: 'string',
-                      description: 'Natural language search query (e.g., parenting influencers in South Korea)',
+                      type: "string",
+                      description:
+                        "Natural language search query (e.g., parenting influencers in South Korea)",
                     },
                     limit: {
-                      type: 'number',
-                      description: 'Maximum number of results (max 6)',
+                      type: "number",
+                      description: "Maximum number of results (max 6)",
                       default: 6,
                       minimum: 0,
                       maximum: 6,
                     },
                   },
-                  required: ['query'],
+                  required: ["query"],
                 },
                 _meta: {
-                  'openai/outputTemplate': 'ui://widget/carousel.html',
-                  'openai/widgetAccessible': true,
-                  'openai/toolInvocation/invoking': 'Searching for influencers...',
-                  'openai/toolInvocation/invoked': 'Loaded influencer profiles',
+                  "openai/outputTemplate": "ui://widget/carousel.html",
+                  "openai/widgetAccessible": true,
+                  "openai/toolInvocation/invoking":
+                    "Searching for influencers...",
+                  "openai/toolInvocation/invoked": "Loaded influencer profiles",
                 },
               },
             ],
@@ -356,63 +469,66 @@ app.post('/mcp', async (req, res) => {
         });
         break;
 
-      case 'resources/list':
-        console.error('Received resources/list request');
+      case "resources/list":
+        console.error("Received resources/list request");
         res.json({
-          jsonrpc: '2.0',
+          jsonrpc: "2.0",
           id: id,
           result: {
             resources: [
               {
-                uri: 'ui://widget/carousel.html',
-                name: 'Influencer Carousel Widget',
-                description: 'Displays influencer profiles in carousel format',
-                mimeType: 'text/html+skybridge',
+                uri: "ui://widget/carousel.html",
+                name: "Influencer Carousel Widget",
+                description: "Displays influencer profiles in carousel format",
+                mimeType: "text/html+skybridge",
               },
             ],
           },
         });
         break;
 
-      case 'resources/read':
-        console.error('=== RESOURCES/READ RECEIVED ===');
-        console.error('Resource URI:', params?.uri);
+      case "resources/read":
+        console.error("=== RESOURCES/READ RECEIVED ===");
+        console.error("Resource URI:", params?.uri);
         const resourceUri = params?.uri;
 
-        if (resourceUri === 'ui://widget/carousel.html') {
+        if (resourceUri === "ui://widget/carousel.html") {
           res.json({
-            jsonrpc: '2.0',
+            jsonrpc: "2.0",
             id: id,
             result: {
-              contents: [{
-                uri: 'ui://widget/carousel.html',
-                mimeType: 'text/html+skybridge',
-                text: `
+              contents: [
+                {
+                  uri: "ui://widget/carousel.html",
+                  mimeType: "text/html+skybridge",
+                  text: `
 <div id="root"></div>
 <style>${COMPONENT_CSS}</style>
 <script type="module">${COMPONENT_JS}</script>
                 `.trim(),
-                _meta: {
-                  'openai/widgetDescription': 'Displays influencer profiles in carousel format',
-                  'openai/widgetPrefersBorder': true,
-                  'openai/widgetDomain': 'https://chatgpt.com',
-                  'openai/widgetCSP': {
-                    connect_domains: [
-                      'https://dev.whotag.ai',
-                      'https://cdn.whotag.ai',
-                    ],
-                    resource_domains: [
-                      'https://cdn.whotag.ai',
-                      'https://*.oaistatic.com',
-                    ],
+                  _meta: {
+                    "openai/widgetDescription":
+                      "Displays influencer profiles in carousel format",
+                    "openai/widgetPrefersBorder": true,
+                    "openai/widgetDomain": "https://whotag.ai",
+                    "openai/widgetCSP": {
+                      connect_domains: [
+                        "https://dev.whotag.ai",
+                        "https://cdn.whotag.ai",
+                      ],
+                      resource_domains: [
+                        "https://cdn.whotag.ai",
+                        "https://*.oaistatic.com",
+                      ],
+                    },
                   },
                 },
-              }],
+              ],
             },
           });
         } else {
           res.json({
-            jsonrpc: '2.0',
+            jsonrpc: "2.0",
             id: id,
             error: {
               code: -32602,
@@ -422,21 +538,23 @@ app.post('/mcp', async (req, res) => {
         }
         break;
 
-      case 'tools/call':
-        console.error('=== TOOLS/CALL RECEIVED ===');
-        console.error('Tool name:', params?.name);
-        console.error('Arguments:', JSON.stringify(params?.arguments, null, 2));
+      case "tools/call":
+        console.error("=== TOOLS/CALL RECEIVED ===");
+        console.error("Tool name:", params?.name);
+        console.error("Arguments:", JSON.stringify(params?.arguments, null, 2));
         const toolName = params?.name;
         const toolArgs = params?.arguments || {};
 
-        if (toolName === 'search_influencers') {
+        if (toolName === "search_influencers") {
           // Call the actual search function
           try {
             const searchResults = await searchInfluencers(toolArgs.query);
             // Limit to max 6 (PRD requirement)
             const limitValue = Math.min(toolArgs.limit || 6, 6);
             console.error(`Limit value: ${limitValue}`);
-            console.error(`Total influencers found: ${searchResults.item.influencers.length}`);
+            console.error(
+              `Total influencers found: ${searchResults.item.influencers.length}`
+            );
             const userIds = searchResults.item.influencers.slice(0, limitValue);
             console.error(`User IDs to fetch: ${userIds.length}`);
             const profiles = await getInfluencerBatch(userIds);
@@ -445,28 +563,99 @@ app.post('/mcp', async (req, res) => {
             const profilesWithImages = await Promise.all(
               profiles.map(async (profile) => {
                 try {
-                  const images = await getRepresentativeImages(profile.profile.user_id);
+                  console.error(
+                    `\n>>> Fetching images for ${profile.profile.username}`
+                  );
+                  const [representativeImages, gridImages] = await Promise.all([
+                    getRepresentativeImages(profile.profile.user_id),
+                    getGridImages(profile.profile.user_id),
+                  ]);
+                  console.error(
+                    `Representative images count: ${representativeImages.length}`
+                  );
+                  console.error(`Grid images count: ${gridImages.length}`);
+
+                  const gridImageUrls = gridImages.map((img) => img.image_url);
+                  console.error(`Grid image URLs:`, gridImageUrls);
+
                   return {
                     user_id: profile.profile.user_id,
                     username: profile.profile.username,
                     full_name: profile.profile.full_name,
-                    title: profile.general?.title || profile.general?.demo_short || '',
+                    title:
+                      profile.general?.title ||
+                      profile.general?.demo_short ||
+                      "",
                     followed_by: profile.profile.followed_by,
-                    primaryImage: images[0]?.image_url || profile.profile.profile_pic_url,
+                    follows: profile.profile.follows,
+                    media_count: profile.profile.media_count,
+                    primaryImage:
+                      representativeImages[0]?.image_url ||
+                      profile.profile.profile_pic_url,
+                    gridImages: gridImageUrls,
                     links: profile.links?.links || [],
                     country: profile.general?.country || [],
+                    // Additional marketing information
+                    biography: profile.profile.biography,
+                    engagement_rate: profile.profile.engagement_rate,
+                    engagement_rate_tag: profile.profile.engagement_rate_tag,
+                    collaboration_tier: profile.general?.collaboration_tier,
+                    collaborate_brand: profile.general?.collaborate_brand || [],
+                    account_type: profile.general?.account_type,
+                    willing_to_collaborate:
+                      profile.general?.willing_to_collaborate,
+                    note_for_brand_collaborate_point:
+                      profile.general?.note_for_brand_collaborate_point || [],
+                    note_for_brand_weak_point:
+                      profile.general?.note_for_brand_weak_point || [],
+                    tag_brand: profile.general?.tag_brand || [],
+                    language: profile.general?.language || [],
+                    age_range: profile.general?.age_range,
+                    interests: profile.general?.interests || [],
+                    field_of_creator: profile.general?.field_of_creator || [],
+                    demo_short: profile.general?.demo_short,
+                    profile_pic_url: profile.profile.profile_pic_url,
                   };
                 } catch (error) {
-                  console.error(`Failed to fetch images for ${profile.profile.username}:`, error);
+                  console.error(
+                    `Failed to fetch images for ${profile.profile.username}:`,
+                    error
+                  );
                   return {
                     user_id: profile.profile.user_id,
                     username: profile.profile.username,
                     full_name: profile.profile.full_name,
-                    title: profile.general?.title || profile.general?.demo_short || '',
+                    title:
+                      profile.general?.title ||
+                      profile.general?.demo_short ||
+                      "",
                     followed_by: profile.profile.followed_by,
+                    follows: profile.profile.follows,
+                    media_count: profile.profile.media_count,
                     primaryImage: profile.profile.profile_pic_url,
+                    gridImages: [],
                     links: profile.links?.links || [],
                     country: profile.general?.country || [],
+                    // Additional marketing information
+                    biography: profile.profile.biography,
+                    engagement_rate: profile.profile.engagement_rate,
+                    engagement_rate_tag: profile.profile.engagement_rate_tag,
+                    collaboration_tier: profile.general?.collaboration_tier,
+                    collaborate_brand: profile.general?.collaborate_brand || [],
+                    account_type: profile.general?.account_type,
+                    willing_to_collaborate:
+                      profile.general?.willing_to_collaborate,
+                    note_for_brand_collaborate_point:
+                      profile.general?.note_for_brand_collaborate_point || [],
+                    note_for_brand_weak_point:
+                      profile.general?.note_for_brand_weak_point || [],
+                    tag_brand: profile.general?.tag_brand || [],
+                    language: profile.general?.language || [],
+                    age_range: profile.general?.age_range,
+                    interests: profile.general?.interests || [],
+                    field_of_creator: profile.general?.field_of_creator || [],
+                    demo_short: profile.general?.demo_short,
+                    profile_pic_url: profile.profile.profile_pic_url,
                   };
                 }
               })
@@ -488,8 +677,10 @@ app.post('/mcp', async (req, res) => {
               engagement_rate_tag: profile.profile.engagement_rate_tag,
               account_type: profile.general?.account_type,
               willing_to_collaborate: profile.general?.willing_to_collaborate,
-              note_for_brand_collaborate_point: profile.general?.note_for_brand_collaborate_point || [],
-              note_for_brand_weak_point: profile.general?.note_for_brand_weak_point || [],
+              note_for_brand_collaborate_point:
+                profile.general?.note_for_brand_collaborate_point || [],
+              note_for_brand_weak_point:
+                profile.general?.note_for_brand_weak_point || [],
               tag_brand: profile.general?.tag_brand || [],
 
               // 인구통계 & 타겟 (6개)
@@ -502,7 +693,7 @@ app.post('/mcp', async (req, res) => {
             }));
 
             const response = {
-              jsonrpc: '2.0',
+              jsonrpc: "2.0",
               id: id,
               result: {
                 structuredContent: {
@@ -515,13 +706,13 @@ app.post('/mcp', async (req, res) => {
                 },
                 content: [
                   {
-                    type: 'text',
+                    type: "text",
                     text: `Found ${searchResults.item.total_count} influencers. Search results for "${toolArgs.query}".`,
                   },
                 ],
                 _meta: {
-                  'openai/outputTemplate': 'ui://widget/carousel.html',
-                  'openai/widgetAccessible': true,
+                  "openai/outputTemplate": "ui://widget/carousel.html",
+                  "openai/widgetAccessible": true,
                   allProfiles: profilesWithImages,
                   searchMetadata: {
                     query: toolArgs.query,
@@ -534,23 +725,34 @@ app.post('/mcp', async (req, res) => {
               },
             };
 
-            console.error('=== RESPONSE DEBUG ===');
-            console.error('Response structure:', JSON.stringify({
-              hasContent: !!response.result.content,
-              contentLength: response.result.content.length,
-              contentTypes: response.result.content.map((c: any) => c.type),
-              hasMeta: !!response.result._meta,
-              hasOutputTemplate: !!response.result._meta?.['openai/outputTemplate'],
-              outputTemplate: response.result._meta?.['openai/outputTemplate'],
-              profilesCount: response.result._meta?.allProfiles?.length || 0,
-            }, null, 2));
-            console.error('=== END DEBUG ===');
+            console.error("=== RESPONSE DEBUG ===");
+            console.error(
+              "Response structure:",
+              JSON.stringify(
+                {
+                  hasContent: !!response.result.content,
+                  contentLength: response.result.content.length,
+                  contentTypes: response.result.content.map((c: any) => c.type),
+                  hasMeta: !!response.result._meta,
+                  hasOutputTemplate:
+                    !!response.result._meta?.["openai/outputTemplate"],
+                  outputTemplate:
+                    response.result._meta?.["openai/outputTemplate"],
+                  profilesCount:
+                    response.result._meta?.allProfiles?.length || 0,
+                },
+                null,
+                2
+              )
+            );
+            console.error("=== END DEBUG ===");
 
             res.json(response);
           } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
+            const errorMessage =
+              error instanceof Error ? error.message : String(error);
             res.json({
-              jsonrpc: '2.0',
+              jsonrpc: "2.0",
               id: id,
               error: {
                 code: -32000,
@@ -560,7 +762,7 @@ app.post('/mcp', async (req, res) => {
           }
         } else {
           res.json({
-            jsonrpc: '2.0',
+            jsonrpc: "2.0",
             id: id,
             error: {
               code: -32601,
@@ -573,7 +775,7 @@ app.post('/mcp', async (req, res) => {
       default:
         console.error(`Unknown method: ${method}`);
         res.json({
-          jsonrpc: '2.0',
+          jsonrpc: "2.0",
           id: id,
           error: {
             code: -32601,
@@ -582,10 +784,10 @@ app.post('/mcp', async (req, res) => {
         });
     }
   } catch (error) {
-    console.error('Error handling MCP request:', error);
+    console.error("Error handling MCP request:", error);
     const errorMessage = error instanceof Error ? error.message : String(error);
     res.json({
-      jsonrpc: '2.0',
+      jsonrpc: "2.0",
       id: id,
       error: {
         code: -32603,
@@ -596,45 +798,45 @@ app.post('/mcp', async (req, res) => {
 });
 
 // OAuth discovery endpoints (return empty for no auth)
-app.get('/.well-known/oauth-authorization-server', (_req, res) => {
-  res.status(404).json({ error: 'OAuth not configured' });
+app.get("/.well-known/oauth-authorization-server", (_req, res) => {
+  res.status(404).json({ error: "OAuth not configured" });
 });
 
-app.get('/.well-known/openid-configuration', (_req, res) => {
-  res.status(404).json({ error: 'OpenID not configured' });
+app.get("/.well-known/openid-configuration", (_req, res) => {
+  res.status(404).json({ error: "OpenID not configured" });
 });
 
 // SSE endpoint
-app.get('/mcp/sse', async (_req, res) => {
-  const transport = new SSEServerTransport('/mcp/message', res);
+app.get("/mcp/sse", async (_req, res) => {
+  const transport = new SSEServerTransport("/mcp/message", res);
   const sessionId = (transport as any)._sessionId;
-  
+
   if (sessionId) {
     transports[sessionId] = transport;
     console.error(`New SSE connection: ${sessionId}`);
   }
-  
-  res.on('close', () => {
+
+  res.on("close", () => {
     if (sessionId) {
       delete transports[sessionId];
       console.error(`SSE connection closed: ${sessionId}`);
     }
   });
-  
+
   await server.connect(transport);
 });
 
 // Message endpoint
-app.post('/mcp/message', async (req, res) => {
+app.post("/mcp/message", async (req, res) => {
   const sessionId = req.query.sessionId as string;
   const transport = transports[sessionId];
-  
+
   if (!transport) {
     console.error(`No transport found for session: ${sessionId}`);
-    res.status(400).send('No transport found');
+    res.status(400).send("No transport found");
     return;
   }
-  
+
   await transport.handlePostMessage(req, res, req.body);
 });
 

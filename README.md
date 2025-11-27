@@ -121,6 +121,116 @@ ChatGPT에서 테스트:
 - **UI**: React, TypeScript, Vite
 - **API**: whotag.ai API
 
+## 🔍 로그 관리
+
+### 개발 환경 (Development)
+
+현재 개발 환경에서는 상세한 디버그 로그가 활성화되어 있습니다:
+
+```typescript
+// 검색 요청 로그
+🔍 NEW SEARCH REQUEST: "한국의 패션 인플루언서"
+
+// API 호출 로그
+>>> Calling grid API for user: 12345678
+>>> Grid API response: {...}
+
+// 이미지 처리 로그
+Representative images count: 3
+Grid images count: 1
+Grid image URLs: [...]
+```
+
+이 로그들은 디버깅과 개발 시 유용합니다.
+
+### 프로덕션 환경 (Production)
+
+프로덕션 배포 시 로그를 제어하는 방법:
+
+#### 방법 1: 환경 변수 사용 (권장)
+
+1. **`.env` 파일 설정**:
+```env
+NODE_ENV=production  # 프로덕션 모드
+LOG_LEVEL=error      # error만 로깅 (debug, info, warn, error 중 선택)
+```
+
+2. **코드에서 조건부 로깅**:
+```typescript
+const isDev = process.env.NODE_ENV !== 'production';
+
+if (isDev) {
+  console.error('>>> Debug log');  // 개발 환경에서만 표시
+}
+
+console.error('Error occurred');   // 항상 표시
+```
+
+#### 방법 2: 로그 레벨 구분
+
+```typescript
+// server/src/utils/logger.ts (예시)
+const logger = {
+  debug: (...args: any[]) => {
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('[DEBUG]', ...args);
+    }
+  },
+  info: (...args: any[]) => {
+    console.error('[INFO]', ...args);
+  },
+  error: (...args: any[]) => {
+    console.error('[ERROR]', ...args);
+  }
+};
+
+// 사용 예시
+logger.debug('>>> Calling API');  // 개발에서만
+logger.error('API failed');       // 항상
+```
+
+#### 방법 3: 로깅 라이브러리 사용
+
+전문적인 로깅이 필요한 경우:
+
+```bash
+pnpm add winston
+```
+
+```typescript
+import winston from 'winston';
+
+const logger = winston.createLogger({
+  level: process.env.LOG_LEVEL || 'info',
+  format: winston.format.json(),
+  transports: [
+    new winston.transports.Console(),
+    new winston.transports.File({
+      filename: 'error.log',
+      level: 'error'
+    })
+  ]
+});
+```
+
+### 로그 출력 위치
+
+현재 `console.error`를 사용하는 이유:
+- **stdout**: 일반 출력 (`console.log`)
+- **stderr**: 에러 및 디버그 출력 (`console.error`) ✅
+
+프로덕션에서는 stderr를 별도로 수집하여 로그 분석 시스템 (CloudWatch, Datadog 등)으로 전송할 수 있습니다.
+
+### 권장 사항
+
+**개발 중**:
+- 현재 상태 유지 (모든 디버그 로그 활성화)
+
+**프로덕션 배포 전**:
+- `NODE_ENV=production` 설정
+- 중요 에러만 로깅하도록 필터링
+- 로그 수집 시스템 연동
+
 ## 📌 주의사항
 
 - `.env` 파일은 절대 커밋하지 마세요

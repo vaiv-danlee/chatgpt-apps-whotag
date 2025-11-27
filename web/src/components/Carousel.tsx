@@ -1,23 +1,13 @@
 import React, { useRef } from 'react';
 import ProfileCard from './ProfileCard';
+import { Profile } from '../types';
 
 interface CarouselProps {
-  profiles: Array<{
-    user_id: string;
-    username: string;
-    full_name: string;
-    title: string;
-    followed_by: number;
-    primaryImage?: string;
-    country?: string | string[];
-    links?: Array<{
-      platform: string;
-      urls: string[];
-    }>;
-  }>;
+  profiles: Profile[];
+  onCardClick?: (index: number) => void;
 }
 
-const Carousel: React.FC<CarouselProps> = ({ profiles }) => {
+const Carousel: React.FC<CarouselProps> = ({ profiles, onCardClick }) => {
   const trackRef = useRef<HTMLDivElement>(null);
 
   const scrollLeft = () => {
@@ -45,8 +35,12 @@ const Carousel: React.FC<CarouselProps> = ({ profiles }) => {
       </button>
 
       <div className="carousel-track" ref={trackRef}>
-        {profiles.map((profile) => (
-          <ProfileCard key={profile.user_id} profile={profile} />
+        {profiles.map((profile, index) => (
+          <ProfileCard
+            key={profile.user_id}
+            profile={profile}
+            onClick={() => onCardClick?.(index)}
+          />
         ))}
       </div>
 
