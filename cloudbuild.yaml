@@ -1,0 +1,62 @@
+steps:
+  # Build Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'asia-northeast3-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/whotag-chatgpt-app:$COMMIT_SHA'
+      - '-t'
+      - 'asia-northeast3-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/whotag-chatgpt-app:latest'
+      - '.'
+
+  # Push Docker image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'asia-northeast3-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/whotag-chatgpt-app:$COMMIT_SHA'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'asia-northeast3-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/whotag-chatgpt-app:latest'
+
+  # Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'whotag-chatgpt-app'
+      - '--image'
+      - 'asia-northeast3-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/whotag-chatgpt-app:$COMMIT_SHA'
+      - '--region'
+      - 'asia-northeast3'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--memory'
+      - '512Mi'
+      - '--cpu'
+      - '1'
+      - '--timeout'
+      - '300'
+      - '--concurrency'
+      - '80'
+      - '--min-instances'
+      - '0'
+      - '--max-instances'
+      - '10'
+      - '--set-secrets'
+      - 'WHOTAG_USERNAME=whotag-username:latest,WHOTAG_PASSWORD=whotag-password:latest,OPENAI_API_KEY=openai-api-key:latest'
+      - '--set-env-vars'
+      - 'GCS_BUCKET=chatgpt-apps'
+      - '--service-account'
+      - 'whotag-chatgpt-app@mmm-lab.iam.gserviceaccount.com'
+
+# Store images in Artifact Registry
+images:
+  - 'asia-northeast3-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/whotag-chatgpt-app:$COMMIT_SHA'
+  - 'asia-northeast3-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/whotag-chatgpt-app:latest'
+
+options:
+  logging: CLOUD_LOGGING_ONLY

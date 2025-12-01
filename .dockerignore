@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+server/node_modules/
+web/node_modules/
+
+# Build outputs (will be created in Docker)
+server/dist/
+web/dist/
+
+# Development files
+.git/
+.gitignore
+.claude/
+*.md
+!README.md
+
+# Environment files (secrets should be in Secret Manager)
+.env
+.env.*
+server/.env
+server/.env.*
+
+# IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Test files
+*.test.ts
+*.spec.ts
+__tests__/
+coverage/
+
+# Docker files (not needed inside container)
+Dockerfile
+.dockerignore
+docker-compose*.yml

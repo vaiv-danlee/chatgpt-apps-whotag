@@ -210,6 +210,116 @@ MCP 서버는 SSE (Server-Sent Events)를 사용한 양방향 통신:
 - `https://chatgpt.com`
 - `https://chat.openai.com`
 
+## Cloud Run 배포
+
+### 사전 준비
+
+1. **GCP 프로젝트 설정**
+   ```bash
+   gcloud config set project mmm-lab
+   ```
+
+2. **필요한 API 활성화**
+   ```bash
+   gcloud services enable cloudbuild.googleapis.com
+   gcloud services enable run.googleapis.com
+   gcloud services enable artifactregistry.googleapis.com
+   gcloud services enable secretmanager.googleapis.com
+   ```
+
+3. **Artifact Registry 저장소 생성** (없는 경우)
+   ```bash
+   gcloud artifacts repositories create cloud-run-source-deploy \
+     --repository-format=docker \
+     --location=asia-northeast3 \
+     --description="Cloud Run deployment images"
+   ```
+
+4. **Secret Manager에 환경변수 등록**
+   ```bash
+   # whotag API 인증 정보
+   echo -n "your_whotag_username" | gcloud secrets create whotag-username --data-file=-
+   echo -n "your_whotag_password" | gcloud secrets create whotag-password --data-file=-
+
+   # OpenAI API Key (BigQuery SQL 생성용)
+   echo -n "your_openai_api_key" | gcloud secrets create openai-api-key --data-file=-
+
+   # Cloud Run 서비스 계정에 Secret 접근 권한 부여
+   PROJECT_NUMBER=$(gcloud projects describe mmm-lab --format='value(projectNumber)')
+
+   for SECRET in whotag-username whotag-password openai-api-key; do
+     gcloud secrets add-iam-policy-binding $SECRET \
+       --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
+       --role="roles/secretmanager.secretAccessor"
+   done
+   ```
+
+5. **BigQuery 권한 설정** (분석 도구 사용 시)
+   ```bash
+   # Cloud Run 기본 서비스 계정에 BigQuery 권한 부여
+   PROJECT_NUMBER=$(gcloud projects describe mmm-lab --format='value(projectNumber)')
+
+   gcloud projects add-iam-policy-binding mmm-lab \
+     --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
+     --role="roles/bigquery.dataViewer"
+
+   gcloud projects add-iam-policy-binding mmm-lab \
+     --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
+     --role="roles/bigquery.jobUser"
+   ```
+
+6. **GCS 버킷 권한 설정** (CSV 다운로드용)
+   ```bash
+   PROJECT_NUMBER=$(gcloud projects describe mmm-lab --format='value(projectNumber)')
+
+   gsutil iam ch \
+     serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com:objectAdmin \
+     gs://chatgpt-apps
+   ```
+
+### GitHub 연동 자동 배포
+
+1. **Cloud Build 트리거 생성**
+   - GCP Console → Cloud Build → 트리거 → 트리거 만들기
+   - 저장소: GitHub 저장소 연결
+   - 브랜치: `^main$` (또는 원하는 브랜치)
+   - 구성: `cloudbuild.yaml` 선택
+
+2. **또는 CLI로 트리거 생성**
+   ```bash
+   gcloud builds triggers create github \
+     --name="whotag-chatgpt-app-deploy" \
+     --repo-name="chatgpt-apps-whotag" \
+     --repo-owner="your-github-username" \
+     --branch-pattern="^main$" \
+     --build-config="cloudbuild.yaml"
+   ```
+
+### 수동 배포
+
+```bash
+# Cloud Build로 직접 배포
+gcloud builds submit --config=cloudbuild.yaml
+
+# 또는 Cloud Run 소스 배포 (Dockerfile 사용)
+gcloud run deploy whotag-chatgpt-app \
+  --source . \
+  --region asia-northeast3 \
+  --allow-unauthenticated
+```
+
+### 배포 후 설정
+
+1. **배포된 URL 확인**
+   ```bash
+   gcloud run services describe whotag-chatgpt-app \
+     --region asia-northeast3 \
+     --format='value(status.url)'
+   ```
+
+2. **ChatGPT Actions 업데이트**
+   - Schema URL을 Cloud Run URL로 변경: `https://whotag-chatgpt-app-xxxxx.asia-northeast3.run.app/mcp`
+
 ## 주의사항
 
 - `.env` 파일은 절대 커밋하지 마세요
