@@ -93,6 +93,47 @@ const server = new McpServer({
 // Session management
 const transports: Record<string, SSEServerTransport> = {};
 
+// Tool usage guidelines for ChatGPT
+const TOOL_USAGE_GUIDELINES = `## Tool Usage Guidelines
+When the user asks you to search for influencers:
+
+### CRITICAL: Single vs Multiple Searches
+When the user asks for influencers from MULTIPLE countries/regions/categories that need to be COMPARED or ANALYZED SEPARATELY:
+- ⚠️ **YOU MUST MAKE SEPARATE TOOL CALLS** - one for each country/region/category
+- ⚠️ **DO NOT combine them into one search query**
+- ⚠️ **Each tool call should target ONE specific country/region/category**
+
+This applies to:
+  - **Geographic regions**: "Vietnam and Malaysia", "Thailand and Vietnam", "6 Southeast Asian countries"
+  - **Multiple platforms**: "Instagram and TikTok influencers separately"
+  - **Different categories**: "beauty and fashion influencers" (when user wants separate comparison)
+  - **Multiple audience segments**: "Gen Z and Millennial influencers"
+  - **Different tiers**: "micro and macro influencers" (when user wants distinction)
+
+**MANDATORY: Examples of Multiple Tool Calls**:
+- "태국과 베트남의 뷰티 인플루언서" → MUST call TWICE:
+  1. search_influencers(query="beauty influencers in Thailand with 50k-100k followers")
+  2. search_influencers(query="beauty influencers in Vietnam with 50k-100k followers")
+
+- "동남아 주요 6개국가의 뷰티 인플루언서" → MUST call 6 TIMES (Thailand, Vietnam, Indonesia, Philippines, Malaysia, Singapore)
+
+- "Instagram과 TikTok 패션 인플루언서" → MUST call TWICE (Instagram, then TikTok)
+
+**Single Search (Only When User Wants Combined Results)**:
+- "베트남 또는 말레이시아의 뷰티 인플루언서" → Call once: "beauty influencers in Vietnam or Malaysia"
+- "동남아시아 지역의 패션 인플루언서" (not asking to compare countries) → Call once
+
+**Why Separate Tool Calls Are REQUIRED**:
+- Each search appears in a separate carousel for easy comparison
+- Better organized results per country/category
+- More accurate filtering and analysis
+
+### Query Formatting
+- Use the user's EXACT wording and intent for each search
+- Do NOT add criteria the user didn't explicitly request (like "top creators", "include follower count", "platform tags", etc.)
+- Only add search terms that the user specifically mentioned
+- Keep queries simple and focused`;
+
 // Register UI resource
 server.registerResource(
   "widget",
@@ -126,17 +167,47 @@ server.registerResource(
   })
 );
 
+// Register tool usage guidelines resource
+server.registerResource(
+  "instructions",
+  "ui://instructions/tool-guidelines.txt",
+  {},
+  async () => ({
+    contents: [
+      {
+        uri: "ui://instructions/tool-guidelines.txt",
+        mimeType: "text/plain",
+        text: TOOL_USAGE_GUIDELINES,
+      },
+    ],
+  })
+);
+
+// Tool description with usage guidelines
+const SEARCH_TOOL_DESCRIPTION = `Search influencers using natural language query.
+
+CRITICAL: When user wants to COMPARE or ANALYZE influencers from MULTIPLE distinct groups SEPARATELY, you MUST make SEPARATE tool calls for each:
+- "베트남과 태국 뷰티 인플루언서" → Call TWICE: once for Vietnam, once for Thailand
+- "동남아 6개국 인플루언서" → Call 6 TIMES (one per country)
+- "Instagram과 TikTok 인플루언서" → Call TWICE (one per platform)
+- "20대와 40대 인플루언서" → Call TWICE (one per age group)
+- "뷰티와 패션 인플루언서" → Call TWICE (one per category)
+
+Only combine into ONE call when user explicitly wants mixed results (e.g., "베트남 또는 태국" with "또는/or").
+
+Each separate call creates its own carousel for easy comparison.`;
+
 // Register search tool
 server.registerTool(
   "search_influencers",
   {
     title: "Search Influencers",
-    description: "Search influencers using natural language query",
+    description: SEARCH_TOOL_DESCRIPTION,
     inputSchema: {
       query: z
         .string()
         .describe(
-          "Natural language search query (e.g., parenting influencers in South Korea)"
+          "Natural language search query for ONE specific country/region/category (e.g., 'beauty influencers in Vietnam')"
         ),
       limit: z
         .number()
@@ -442,14 +513,14 @@ app.post("/mcp", async (req, res) => {
             tools: [
               {
                 name: "search_influencers",
-                description: "Search influencers using natural language query",
+                description: SEARCH_TOOL_DESCRIPTION,
                 inputSchema: {
                   type: "object",
                   properties: {
                     query: {
                       type: "string",
                       description:
-                        "Natural language search query (e.g., parenting influencers in South Korea)",
+                        "Natural language search query for ONE specific country/region/category (e.g., 'beauty influencers in Vietnam')",
                     },
                     limit: {
                       type: "number",
@@ -621,6 +692,12 @@ app.post("/mcp", async (req, res) => {
                 description: "Displays influencer profiles in carousel format",
                 mimeType: "text/html+skybridge",
               },
+              {
+                uri: "ui://instructions/tool-guidelines.txt",
+                name: "Tool Usage Guidelines",
+                description: "Guidelines for using the search_influencers tool effectively",
+                mimeType: "text/plain",
+              },
             ],
           },
         });
@@ -661,6 +738,20 @@ app.post("/mcp", async (req, res) => {
                       ],
                     },
                   },
+                },
+              ],
+            },
+          });
+        } else if (resourceUri === "ui://instructions/tool-guidelines.txt") {
+          res.json({
+            jsonrpc: "2.0",
+            id: id,
+            result: {
+              contents: [
+                {
+                  uri: "ui://instructions/tool-guidelines.txt",
+                  mimeType: "text/plain",
+                  text: TOOL_USAGE_GUIDELINES,
                 },
               ],
             },
