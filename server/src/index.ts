@@ -58,9 +58,29 @@ app.use(
 );
 app.use(express.json());
 
-// Request logging
+// Request logging with host detection info
 app.use((req, _res, next) => {
+  console.error(`\n========== REQUEST ==========`);
   console.error(`${req.method} ${req.path}`);
+  console.error(`--- Headers for host detection ---`);
+  console.error(`Origin: ${req.get("origin") || "(none)"}`);
+  console.error(`Referer: ${req.get("referer") || "(none)"}`);
+  console.error(`User-Agent: ${req.get("user-agent") || "(none)"}`);
+  console.error(`X-Forwarded-Host: ${req.get("x-forwarded-host") || "(none)"}`);
+  console.error(`Host: ${req.get("host") || "(none)"}`);
+  // ChatGPT specific headers (if any)
+  console.error(`X-OpenAI-*: ${JSON.stringify(
+    Object.fromEntries(
+      Object.entries(req.headers).filter(([k]) => k.toLowerCase().startsWith("x-openai"))
+    )
+  )}`);
+  // All custom headers (x-* headers)
+  console.error(`All X-* headers: ${JSON.stringify(
+    Object.fromEntries(
+      Object.entries(req.headers).filter(([k]) => k.toLowerCase().startsWith("x-"))
+    )
+  )}`);
+  console.error(`================================\n`);
   next();
 });
 
@@ -92,6 +112,72 @@ const server = new McpServer({
 
 // Session management
 const transports: Record<string, SSEServerTransport> = {};
+
+// Host type detection and session tracking
+type HostType = "chatgpt" | "standard";
+
+interface SessionInfo {
+  transport: SSEServerTransport;
+  hostType: HostType;
+}
+
+const sessions: Record<string, SessionInfo> = {};
+
+// Current session context (set during request handling)
+let currentSessionHostType: HostType = "standard";
+
+function detectHostType(req: express.Request): HostType {
+  const userAgent = req.get("user-agent") || "";
+  const origin = req.get("origin") || "";
+
+  // ChatGPT uses "openai-mcp" in User-Agent
+  if (userAgent.includes("openai-mcp") ||
+      origin.includes("chatgpt.com") ||
+      origin.includes("chat.openai.com")) {
+    return "chatgpt";
+  }
+
+  return "standard";
+}
+
+// Helper to format profiles as markdown for non-ChatGPT hosts
+function formatProfilesAsMarkdown(profiles: any[], query: string, totalCount: number, summary: string): string {
+  let markdown = `## Influencer Search Results\n\n`;
+  markdown += `**Query:** ${query}\n`;
+  markdown += `**Total Found:** ${totalCount}\n`;
+  markdown += `**Summary:** ${summary}\n\n`;
+  markdown += `---\n\n`;
+
+  profiles.forEach((profile, index) => {
+    markdown += `### ${index + 1}. ${profile.full_name || profile.username}\n`;
+    markdown += `- **Username:** @${profile.username}\n`;
+    markdown += `- **Followers:** ${profile.followed_by?.toLocaleString() || "N/A"}\n`;
+    markdown += `- **Engagement Rate:** ${profile.engagement_rate || "N/A"}${profile.engagement_rate_tag ? ` (${profile.engagement_rate_tag})` : ""}\n`;
+
+    if (profile.collaboration_tier) {
+      markdown += `- **Collaboration Tier:** ${profile.collaboration_tier}\n`;
+    }
+    if (profile.country?.length > 0) {
+      markdown += `- **Country:** ${profile.country.join(", ")}\n`;
+    }
+    if (profile.field_of_creator?.length > 0) {
+      markdown += `- **Field:** ${profile.field_of_creator.join(", ")}\n`;
+    }
+    if (profile.biography) {
+      markdown += `- **Bio:** ${profile.biography.substring(0, 150)}${profile.biography.length > 150 ? "..." : ""}\n`;
+    }
+    if (profile.willing_to_collaborate !== undefined) {
+      markdown += `- **Willing to Collaborate:** ${profile.willing_to_collaborate ? "Yes" : "No"}\n`;
+    }
+    if (profile.collaborate_brand?.length > 0) {
+      markdown += `- **Past Brand Collaborations:** ${profile.collaborate_brand.slice(0, 5).join(", ")}${profile.collaborate_brand.length > 5 ? "..." : ""}\n`;
+    }
+
+    markdown += `\n`;
+  });
+
+  return markdown;
+}
 
 // Tool usage guidelines for ChatGPT
 const TOOL_USAGE_GUIDELINES = `## Tool Usage Guidelines
@@ -389,35 +475,57 @@ server.registerTool(
         demo_short: profile.general?.demo_short,
       }));
 
-      // 4. Return results
-      return {
-        structuredContent: {
-          summary: {
-            totalCount: searchResults.item.total_count,
-            query: args.query,
-            searchSummary: searchResults.item.search_summary,
+      // 4. Return results based on host type
+      console.error(`Returning results for host type: ${currentSessionHostType}`);
+
+      if (currentSessionHostType === "chatgpt") {
+        // ChatGPT: Return rich response with UI widget
+        return {
+          structuredContent: {
+            summary: {
+              totalCount: searchResults.item.total_count,
+              query: args.query,
+              searchSummary: searchResults.item.search_summary,
+            },
+            influencers: detailedProfiles,
           },
-          influencers: detailedProfiles,
-        },
-        content: [
-          {
-            type: "text",
-            text: `Found ${searchResults.item.total_count} influencers. Search results for "${args.query}".`,
+          content: [
+            {
+              type: "text",
+              text: `Found ${searchResults.item.total_count} influencers for "${args.query}".`,
+            },
+          ],
+          _meta: {
+            "openai/outputTemplate": "ui://widget/carousel.html",
+            "openai/widgetAccessible": true,
+            allProfiles: profilesWithImages,
+            searchMetadata: {
+              query: args.query,
+              timestamp: new Date().toISOString(),
+              conversationId: searchResults.item.conversation_id,
+              totalCount: searchResults.item.total_count,
+              summary: searchResults.item.search_summary,
+            },
           },
-        ],
-        _meta: {
-          "openai/outputTemplate": "ui://widget/carousel.html",
-          "openai/widgetAccessible": true,
-          allProfiles: profilesWithImages,
-          searchMetadata: {
-            query: args.query,
-            timestamp: new Date().toISOString(),
-            conversationId: searchResults.item.conversation_id,
-            totalCount: searchResults.item.total_count,
-            summary: searchResults.item.search_summary,
-          },
-        },
-      };
+        };
+      } else {
+        // Standard MCP hosts (Claude, Cursor, etc.): Return markdown content only
+        const markdownContent = formatProfilesAsMarkdown(
+          detailedProfiles,
+          args.query,
+          searchResults.item.total_count,
+          searchResults.item.search_summary
+        );
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: markdownContent,
+            },
+          ],
+        };
+      }
     } catch (error) {
       console.error("Search error:", error);
       const errorMessage =
@@ -1220,18 +1328,21 @@ app.get("/.well-known/openid-configuration", (_req, res) => {
 });
 
 // SSE endpoint
-app.get("/mcp/sse", async (_req, res) => {
+app.get("/mcp/sse", async (req, res) => {
   const transport = new SSEServerTransport("/mcp/message", res);
   const sessionId = (transport as any)._sessionId;
+  const hostType = detectHostType(req);
 
   if (sessionId) {
     transports[sessionId] = transport;
-    console.error(`New SSE connection: ${sessionId}`);
+    sessions[sessionId] = { transport, hostType };
+    console.error(`New SSE connection: ${sessionId} (host: ${hostType})`);
   }
 
   res.on("close", () => {
     if (sessionId) {
       delete transports[sessionId];
+      delete sessions[sessionId];
       console.error(`SSE connection closed: ${sessionId}`);
     }
   });
@@ -1248,6 +1359,17 @@ app.post("/mcp/message", async (req, res) => {
     console.error(`No transport found for session: ${sessionId}`);
     res.status(400).send("No transport found");
     return;
+  }
+
+  // Set current session host type for tool handlers
+  const sessionInfo = sessions[sessionId];
+  if (sessionInfo) {
+    currentSessionHostType = sessionInfo.hostType;
+    console.error(`Processing message for session ${sessionId} (host: ${currentSessionHostType})`);
+  } else {
+    // Fallback: detect from current request
+    currentSessionHostType = detectHostType(req);
+    console.error(`Session info not found, detected host: ${currentSessionHostType}`);
   }
 
   await transport.handlePostMessage(req, res, req.body);
