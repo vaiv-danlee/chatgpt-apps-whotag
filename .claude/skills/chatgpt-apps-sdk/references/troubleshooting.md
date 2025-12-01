@@ -1,14 +1,208 @@
 # Troubleshooting Guide
 
+## Table of Contents
+
+- [UI Not Rendering in ChatGPT](#ui-not-rendering-in-chatgpt)
+- [SSE Transport Errors](#sse-transport-errors)
+- [Message Routing Failures](#message-routing-failures)
+- [React Component Crashes](#react-component-crashes)
+- [UI Infinite Vertical Expansion](#ui-infinite-vertical-expansion)
+- [Component Build Failures](#component-build-failures)
+- [GPT Cannot Analyze Tool Data](#gpt-cannot-analyze-tool-data)
+- [Common Express Setup Issues](#common-express-setup-issues)
+- [Debugging Checklist](#debugging-checklist)
+- [Production Deployment Issues](#production-deployment-issues)
+- [Quick Reference Tables](#quick-reference-tables)
+
+---
+
 ## UI Not Rendering in ChatGPT
 
 **Symptoms:**
 - Tool executes but no UI appears
 - Only text response shown
+- MCP Inspector works but ChatGPT doesn't render widget
 
 **Causes & Solutions:**
 
-### 1. Missing OpenAI metadata in Resource
+### 1. Missing MCP Discovery Document and JSON-RPC Handler (CRITICAL)
+
+**This is the most common cause of UI not rendering!**
+
+ChatGPT requires specific endpoint patterns that differ from standard MCP:
+
+```typescript
+// ❌ WRONG - Only SSE endpoint (works with MCP Inspector but NOT ChatGPT)
+app.get("/mcp", async (req, res) => {
+  const transport = new SSEServerTransport("/mcp/message", res);
+  await server.connect(transport);
+});
+
+// ✅ CORRECT - Full ChatGPT-compatible endpoint structure
+// 1. GET /mcp - Returns OpenAPI discovery document
+app.get("/mcp", (req, res) => {
+  const serverUrl = getServerUrl(req);
+  res.json({
+    openapi: "3.1.0",
+    info: {
+      title: "My App MCP",
+      version: "1.0.0",
+      description: "MCP server description",
+    },
+    servers: [{ url: serverUrl }],
+    "x-mcp": {
+      protocolVersion: "2025-03-26",
+      capabilities: {
+        tools: {},
+        resources: {},
+      },
+      transport: {
+        type: "sse",
+        url: "/mcp/sse",
+      },
+    },
+  });
+});
+
+// 2. POST /mcp - JSON-RPC request handler
+app.post("/mcp", async (req, res) => {
+  const { method, id, params } = req.body;
+
+  switch (method) {
+    case "initialize":
+      res.json({
+        jsonrpc: "2.0",
+        id,
+        result: {
+          protocolVersion: params?.protocolVersion || "2025-03-26",
+          serverInfo: { name: "my-app", version: "1.0.0" },
+          capabilities: { tools: {}, resources: {} },
+        },
+      });
+      break;
+
+    case "tools/list":
+      res.json({
+        jsonrpc: "2.0",
+        id,
+        result: {
+          tools: [
+            {
+              name: "my_tool",
+              description: "Tool description",
+              inputSchema: { /* ... */ },
+              _meta: {
+                "openai/outputTemplate": "ui://widget/component.html",
+                "openai/widgetAccessible": true,
+              },
+            },
+          ],
+        },
+      });
+      break;
+
+    case "resources/list":
+      res.json({
+        jsonrpc: "2.0",
+        id,
+        result: {
+          resources: [
+            {
+              uri: "ui://widget/component.html",
+              name: "Widget",
+              description: "Interactive widget",
+              mimeType: "text/html+skybridge",
+            },
+          ],
+        },
+      });
+      break;
+
+    case "resources/read":
+      if (params?.uri === "ui://widget/component.html") {
+        res.json({
+          jsonrpc: "2.0",
+          id,
+          result: {
+            contents: [{
+              uri: "ui://widget/component.html",
+              mimeType: "text/html+skybridge",
+              text: `<div id="root"></div><script type="module">${COMPONENT_JS}</script>`,
+              _meta: {
+                "openai/widgetDescription": "Widget description",
+                "openai/widgetPrefersBorder": true,
+                "openai/widgetDomain": "https://chatgpt.com",
+                "openai/widgetCSP": {
+                  connect_domains: [],
+                  resource_domains: ["https://*.oaistatic.com"],
+                },
+              },
+            }],
+          },
+        });
+      }
+      break;
+
+    case "tools/call":
+      // Handle tool execution and return results
+      res.json({
+        jsonrpc: "2.0",
+        id,
+        result: {
+          structuredContent: { /* data */ },
+          content: [{ type: "text", text: "Result" }],
+          _meta: {
+            "openai/outputTemplate": "ui://widget/component.html",
+            "openai/widgetAccessible": true,
+          },
+        },
+      });
+      break;
+
+    default:
+      res.json({
+        jsonrpc: "2.0",
+        id,
+        error: { code: -32601, message: `Method not found: ${method}` },
+      });
+  }
+});
+
+// 3. GET /mcp/sse - SSE connection endpoint
+app.get("/mcp/sse", async (req, res) => {
+  const transport = new SSEServerTransport("/mcp/message", res);
+  // ... session management
+  await server.connect(transport);
+});
+
+// 4. POST /mcp/message - SSE message handler
+app.post("/mcp/message", async (req, res) => {
+  const sessionId = req.query.sessionId as string;
+  const transport = transports[sessionId];
+  await transport.handlePostMessage(req, res, req.body);
+});
+```
+
+**Why this matters:**
+- ChatGPT first calls `GET /mcp` to discover the server capabilities
+- ChatGPT uses `POST /mcp` with JSON-RPC for tool/resource operations
+- SSE (`/mcp/sse`) is only used for streaming connections
+- MCP Inspector may work with SSE-only, but ChatGPT requires all endpoints
+
+**Quick diagnostic:**
+```bash
+# Test discovery endpoint
+curl http://localhost:3000/mcp
+# Should return JSON with "x-mcp" field, NOT hang/stream
+
+# Test JSON-RPC
+curl -X POST http://localhost:3000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+# Should return tools array
+```
+
+### 2. Missing OpenAI metadata in Resource
 
 ```typescript
 // ❌ Missing _meta
@@ -420,6 +614,7 @@ app.use(cors({
 
 | Problem | Quick Fix |
 |---------|-----------|
+| UI not showing (MCP Inspector works) | Add `GET /mcp` discovery doc + `POST /mcp` JSON-RPC handler |
 | UI not showing | Add `mimeType: "text/html+skybridge"` and `_meta` to resource |
 | Header conflict | Remove `res.writeHead()` calls |
 | Message routing | Implement session store with `transports` object |
@@ -432,11 +627,15 @@ app.use(cors({
 
 **Server Code:**
 - [ ] TypeScript compiles without errors
+- [ ] `GET /mcp` returns OpenAPI discovery document with `x-mcp` field
+- [ ] `POST /mcp` handles JSON-RPC methods (initialize, tools/list, resources/list, resources/read, tools/call)
+- [ ] `GET /mcp/sse` sets up SSE connection
+- [ ] `POST /mcp/message` routes messages to correct transport
 - [ ] All `_meta` fields properly set in resources
 - [ ] All `_meta` fields properly set in tools
 - [ ] Session management implemented
 - [ ] No manual SSE header writes
-- [ ] CORS enabled
+- [ ] CORS enabled for ChatGPT domains
 - [ ] `express.json()` middleware added
 - [ ] Tool returns use `structuredContent` for data GPT should analyze
 - [ ] Tool returns use `content` only for user-facing summaries
@@ -473,9 +672,11 @@ app.use(cors({
 
 | Step | Task | Common Issues | Solution |
 |------|------|---------------|----------|
-| 1. Server Setup | Create MCP server | UI not rendering | Add OpenAI metadata (`_meta`) |
-| 2. SSE Transport | Configure endpoints | Header conflict error | Don't set headers manually |
-| 3. Session Mgmt | Implement routing | Messages mixed up | Use session store pattern |
-| 4. React Component | Build UI | Component crashes | Null-safe access (`?.` operator) |
-| 5. Styling | Set dimensions | Infinite expansion | Use `maxHeight` + `overflowY` |
-| 6. Data Structure | Return tool results | GPT can't analyze data | Use `structuredContent` for data |
+| 1. Server Setup | Create MCP server | UI not rendering | Add discovery doc (`GET /mcp`) + JSON-RPC handler (`POST /mcp`) |
+| 2. Endpoints | Configure all 4 endpoints | MCP Inspector works, ChatGPT doesn't | Add `GET /mcp`, `POST /mcp`, `GET /mcp/sse`, `POST /mcp/message` |
+| 3. Metadata | Add OpenAI metadata | Widget not displayed | Add `_meta` fields to resources and tools |
+| 4. SSE Transport | Configure SSE | Header conflict error | Don't set headers manually |
+| 5. Session Mgmt | Implement routing | Messages mixed up | Use session store pattern |
+| 6. React Component | Build UI | Component crashes | Null-safe access (`?.` operator) |
+| 7. Styling | Set dimensions | Infinite expansion | Use `maxHeight` + `overflowY` |
+| 8. Data Structure | Return tool results | GPT can't analyze data | Use `structuredContent` for data |

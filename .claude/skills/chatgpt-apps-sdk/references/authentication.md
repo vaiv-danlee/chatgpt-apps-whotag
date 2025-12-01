@@ -2,6 +2,21 @@
 
 Complete guide for implementing OAuth 2.1 authentication in ChatGPT Apps SDK.
 
+## Table of Contents
+
+- [Overview](#overview)
+- [When to Use Authentication](#when-to-use-authentication)
+- [Architecture](#architecture)
+- [Implementation](#implementation)
+- [Token Management](#token-management)
+- [Scopes](#scopes)
+- [Testing](#testing)
+- [Security Best Practices](#security-best-practices)
+- [Troubleshooting](#troubleshooting)
+- [Migration](#migration)
+
+---
+
 ## Overview
 
 ChatGPT Apps SDK supports OAuth 2.1 with PKCE (Proof Key for Code Exchange) for secure user authentication. This enables apps to access user-specific data and perform write operations.

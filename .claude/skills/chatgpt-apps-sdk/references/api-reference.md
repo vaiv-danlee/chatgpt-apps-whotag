@@ -2,6 +2,19 @@
 
 Complete API reference for ChatGPT Apps SDK component bridge.
 
+## Table of Contents
+
+- [API Overview](#api-overview)
+- [Type Definitions](#type-definitions)
+- [Globals](#globals)
+- [Methods](#methods)
+- [Events](#events)
+- [Navigation Integration](#navigation-integration)
+- [Error Handling](#error-handling)
+- [Best Practices](#best-practices)
+
+---
+
 ## API Overview
 
 `window.openai` is the bridge between React components and ChatGPT. It provides:

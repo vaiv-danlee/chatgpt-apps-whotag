@@ -37,3 +37,6 @@ temp/
 
 # GCP credentials
 mmm-lab-8dae8dbd9a6f.json
+
+# Claude skills (external)
+.claude/skills/skill-creator/
