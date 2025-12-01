@@ -1,0 +1,358 @@
+# BigQuery Schema Documentation for LLM Query Generation
+# This file is used by the OpenAI API to generate accurate SQL queries
+
+project: mmm-lab
+
+tables:
+  # =============================================================================
+  # 1. Influencer Profile Analysis Data (Main Reference Table)
+  # =============================================================================
+  insta_general_profiles:
+    dataset: gpt_profile
+    full_name: mmm-lab.gpt_profile.insta_general_profiles
+    description: |
+      AI-analyzed Instagram influencer profiles containing demographic info,
+      interests, collaboration readiness, and content characteristics.
+      This is the PRIMARY table for filtering influencers by attributes.
+    row_count: ~500K
+    key_columns:
+      - name: user_id
+        type: STRING
+        description: Unique Instagram user identifier (PRIMARY KEY for joins)
+        required: true
+      - name: analyzed_at
+        type: TIMESTAMP
+        description: When the AI analysis was performed
+        required: true
+
+    demographic_columns:
+      - name: gender
+        type: STRING
+        description: Inferred gender
+        values: ["Male", "Female", "Unknown"]
+      - name: age_range
+        type: STRING
+        description: Estimated age range in 5-year intervals
+        values: ["0~4", "5~9", "10~14", "15~19", "20~24", "25~29", "30~34", "35~39", "40~44", "45~49", "50~54", "55~59", "60~64", "65~69", "70+", "Unknown"]
+      - name: ethnic_category
+        type: STRING
+        description: Ethnic/racial category
+        values: ["Asian", "East Asian", "Southeast Asian", "South Asian", "Caucasian", "African", "Hispanic/Latino", "Middle Eastern/North African (MENA)", "Pacific Islander", "Indigenous Peoples", "Mixed Race", "Unknown"]
+      - name: country
+        type: ARRAY<STRING>
+        description: Primary residence countries (ISO 3166-1 Alpha-2 codes)
+        examples: ["KR", "US", "VN", "JP", "TH", "ID", "PH", "BR"]
+      - name: region
+        type: ARRAY<STRING>
+        description: Primary activity regions/cities
+        examples: ["Seoul", "Ho Chi Minh", "Bangkok", "Tokyo"]
+      - name: language
+        type: ARRAY<STRING>
+        description: Languages used (ISO 639-1 codes)
+        examples: ["ko", "en", "vi", "ja", "th"]
+
+    interest_columns:
+      - name: interests
+        type: ARRAY<STRING>
+        description: Main interest categories
+        values: |
+          Fashion & Style, Accessories & Jewelry, Beauty, Hair Care, Food Culture,
+          Meals, Beverages, Alcoholic Beverages, Snacks & Desserts, Travel & Leisure,
+          Relationships & Emotions, Fitness, Ball Sports, Outdoor Sports, Indoor Sports,
+          Sports Events, Wellness, Healthcare, Child Care & Parenting, Pets,
+          Household Management, Interior & Decor, Photography, Visual Arts,
+          Performing Arts, Music, Literature & Writing, Media & Entertainment,
+          New Media, Crafts, Fan Culture, Games, Personal Development, Academic Studies,
+          Student Life, Business & Marketing, Startups & Small Business, Personal Finance,
+          Automotive, Technology & Innovation, Consumer Electronics, Values & Human Rights,
+          Environment & Sustainability, Community Engagement, Religion & Politics,
+          Shopping & Deals, Other
+      - name: interests_in_detail
+        type: ARRAY<STRING>
+        description: Detailed interest keywords extracted from content
+        examples: ["K Beauty", "Skincare Routine", "Solo Travel", "Cafe Culture"]
+      - name: field_of_creator
+        type: ARRAY<STRING>
+        description: Professional fields for brand collaboration
+        examples: ["Sustainable Fashion", "Vegan Cooking", "Travel Photography", "Makeup"]
+
+    business_columns:
+      - name: collaboration_tier
+        type: STRING
+        description: Brand collaboration readiness tier
+        values: ["Ready - Premium", "Ready - Professional", "Potential - High", "Potential - Basic", "Personal Only"]
+      - name: willing_to_collaborate
+        type: BOOLEAN
+        description: Explicit willingness to collaborate with brands
+      - name: collaborate_brand
+        type: ARRAY<STRING>
+        description: Brands the influencer has collaborated with
+      - name: account_type
+        type: STRING
+        description: Type of Instagram account
+        values: ["Personal/Individual", "Celebrity/Influencer/Creator", "Business/Brand Account", "Product/Service Account", "Fan Account", "Others"]
+      - name: k_interest
+        type: BOOLEAN
+        description: Shows interest in Korean culture (K-pop, K-beauty, etc.)
+
+  # =============================================================================
+  # 2. Instagram Media Posts (Photos/Carousels)
+  # =============================================================================
+  insta_media_mmm_v3:
+    dataset: sns
+    full_name: mmm-lab.sns.insta_media_mmm_v3
+    description: |
+      Instagram feed posts (photos, carousels, videos).
+      Contains hashtags, engagement metrics, and post metadata.
+      IMPORTANT: For hashtag analysis, use this table along with insta_reels_mmm_v3.
+    row_count: ~100M+
+    key_columns:
+      - name: media_id
+        type: STRING
+        description: Unique media identifier
+      - name: user_id
+        type: STRING
+        description: Instagram user ID (JOIN KEY with insta_general_profiles)
+      - name: username
+        type: STRING
+        description: Instagram username at time of crawl
+
+    content_columns:
+      - name: caption
+        type: STRING
+        description: Post caption text
+      - name: hashtags
+        type: ARRAY<STRING>
+        description: Hashtags extracted from caption (CRITICAL for trend analysis)
+        note: Use UNNEST(hashtags) to flatten for aggregation
+      - name: location
+        type: STRING
+        description: Tagged location name
+
+    engagement_columns:
+      - name: like_count
+        type: INTEGER
+        description: Number of likes
+      - name: comment_count
+        type: INTEGER
+        description: Number of comments
+      - name: video_view_count
+        type: INTEGER
+        description: Video views (legacy field, for videos only)
+      - name: video_play_count
+        type: INTEGER
+        description: Video plays (newer field, for videos only)
+
+    metadata_columns:
+      - name: publish_date
+        type: TIMESTAMP
+        description: Post publish timestamp (KST timezone)
+      - name: publish_short_date
+        type: STRING
+        description: Publish date as YYYYMMDD string
+      - name: is_video
+        type: BOOLEAN
+        description: Whether the post is a video
+      - name: is_paid_partnership
+        type: BOOLEAN
+        description: Whether marked as paid partnership/sponsored
+      - name: sponsored_by
+        type: STRING
+        description: Sponsor usernames (comma-separated)
+      - name: tagged_accounts
+        type: ARRAY<STRING>
+        description: Tagged account usernames
+      - name: crawl_date
+        type: TIMESTAMP
+        description: When data was collected
+
+  # =============================================================================
+  # 3. Instagram Reels
+  # =============================================================================
+  insta_reels_mmm_v3:
+    dataset: sns
+    full_name: mmm-lab.sns.insta_reels_mmm_v3
+    description: |
+      Instagram Reels (short-form video content).
+      Structure similar to media table but with reel-specific fields.
+      IMPORTANT: Combine with insta_media_mmm_v3 for complete hashtag analysis.
+    row_count: ~50M+
+    key_columns:
+      - name: media_id
+        type: STRING
+        description: Unique reel identifier
+      - name: user_id
+        type: STRING
+        description: Instagram user ID (JOIN KEY)
+      - name: username
+        type: STRING
+        description: Instagram username
+
+    content_columns:
+      - name: caption
+        type: STRING
+        description: Reel caption text
+      - name: hashtags
+        type: ARRAY<STRING>
+        description: Hashtags from caption (CRITICAL for trend analysis)
+      - name: location
+        type: STRING
+        description: Tagged location
+      - name: video_duration
+        type: FLOAT
+        description: Video duration in seconds
+
+    engagement_columns:
+      - name: like_count
+        type: INTEGER
+        description: Number of likes
+      - name: comment_count
+        type: INTEGER
+        description: Number of comments
+      - name: video_play_count
+        type: INTEGER
+        description: Video play count (primary metric for reels)
+      - name: video_view_count
+        type: INTEGER
+        description: Video view count (legacy)
+
+    metadata_columns:
+      - name: publish_date
+        type: TIMESTAMP
+        description: Reel publish timestamp (KST)
+      - name: publish_short_date
+        type: STRING
+        description: Publish date as YYYYMMDD
+      - name: is_paid_partnership
+        type: BOOLEAN
+        description: Paid partnership indicator
+      - name: sponsored_by
+        type: STRING
+        description: Sponsor usernames
+
+  # =============================================================================
+  # 4. Instagram Profile Data
+  # =============================================================================
+  insta_profile_mmm_v3:
+    dataset: sns
+    full_name: mmm-lab.sns.insta_profile_mmm_v3
+    description: |
+      Basic Instagram profile information.
+      WARNING: Large table - always JOIN with insta_general_profiles.user_id first!
+    row_count: ~10M+
+    usage_note: |
+      Due to large size, ALWAYS filter by user_id from insta_general_profiles first.
+      Example: JOIN with (SELECT user_id FROM insta_general_profiles WHERE country = 'VN')
+    key_columns:
+      - name: user_id
+        type: STRING
+        description: Instagram user ID (JOIN KEY)
+      - name: username
+        type: STRING
+        description: Instagram username
+
+    profile_columns:
+      - name: full_name
+        type: STRING
+        description: Display name
+      - name: biography
+        type: STRING
+        description: Profile bio text
+      - name: bio_hashtags
+        type: ARRAY<STRING>
+        description: Hashtags in biography
+      - name: followed_by
+        type: INTEGER
+        description: Follower count
+      - name: follows
+        type: INTEGER
+        description: Following count
+      - name: media_count
+        type: INTEGER
+        description: Total posts count
+      - name: profile_pic_url
+        type: STRING
+        description: Profile picture URL
+      - name: external_url
+        type: STRING
+        description: Website link in bio
+      - name: category_name
+        type: STRING
+        description: Instagram business category
+      - name: is_verified
+        type: BOOLEAN
+        description: Blue checkmark status
+      - name: is_business_account
+        type: BOOLEAN
+        description: Business account flag
+      - name: is_professional_account
+        type: BOOLEAN
+        description: Professional account flag
+
+# =============================================================================
+# Common Query Patterns
+# =============================================================================
+query_patterns:
+  hashtag_trend_analysis:
+    description: Analyze hashtag trends for specific influencer groups
+    pattern: |
+      -- Step 1: Filter influencers by criteria
+      WITH target_influencers AS (
+        SELECT user_id
+        FROM `mmm-lab.gpt_profile.insta_general_profiles`
+        WHERE 'VN' IN UNNEST(country)  -- Example: Vietnam
+          AND 'Beauty' IN UNNEST(interests)
+      ),
+      -- Step 2: Get hashtags from both media and reels
+      all_hashtags AS (
+        SELECT hashtag, publish_date
+        FROM `mmm-lab.sns.insta_media_mmm_v3`, UNNEST(hashtags) AS hashtag
+        WHERE user_id IN (SELECT user_id FROM target_influencers)
+          AND publish_date >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 30 DAY)
+        UNION ALL
+        SELECT hashtag, publish_date
+        FROM `mmm-lab.sns.insta_reels_mmm_v3`, UNNEST(hashtags) AS hashtag
+        WHERE user_id IN (SELECT user_id FROM target_influencers)
+          AND publish_date >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 30 DAY)
+      )
+      -- Step 3: Aggregate
+      SELECT
+        LOWER(hashtag) as hashtag,
+        COUNT(*) as usage_count
+      FROM all_hashtags
+      GROUP BY 1
+      ORDER BY 2 DESC
+      LIMIT 100
+
+  content_statistics:
+    description: Get engagement statistics for influencer groups
+    pattern: |
+      WITH target_influencers AS (
+        SELECT user_id
+        FROM `mmm-lab.gpt_profile.insta_general_profiles`
+        WHERE 'KR' IN UNNEST(country)
+          AND 'Fashion & Style' IN UNNEST(interests)
+      )
+      SELECT
+        COUNT(DISTINCT m.user_id) as influencer_count,
+        COUNT(*) as total_posts,
+        AVG(like_count) as avg_likes,
+        AVG(comment_count) as avg_comments,
+        PERCENTILE_CONT(like_count, 0.5) OVER() as median_likes
+      FROM `mmm-lab.sns.insta_media_mmm_v3` m
+      WHERE m.user_id IN (SELECT user_id FROM target_influencers)
+        AND publish_date >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 30 DAY)
+
+# =============================================================================
+# Important Notes for Query Generation
+# =============================================================================
+important_notes:
+  - Always use backticks for table names: `mmm-lab.dataset.table`
+  - Use UNNEST() to work with ARRAY columns
+  - Filter by date using publish_date column with TIMESTAMP functions
+  - For hashtag analysis, ALWAYS combine insta_media_mmm_v3 AND insta_reels_mmm_v3
+  - Country codes are ISO 3166-1 Alpha-2 (KR, US, VN, JP, TH, ID, etc.)
+  - Language codes are ISO 639-1 (ko, en, vi, ja, th, etc.)
+  - When querying insta_profile_mmm_v3, ALWAYS join with insta_general_profiles first
+  - Use LOWER() for case-insensitive hashtag comparison
+  - Timezone is KST (Korea Standard Time, UTC+9)

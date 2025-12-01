@@ -14,6 +14,11 @@ import {
   getRepresentativeImages,
   getGridImages,
 } from "./api/influencer.js";
+import {
+  analyzeHashtagTrends,
+  analyzeContentStats,
+  findTrendingTopics,
+} from "./api/analytics.js";
 
 dotenv.config();
 
@@ -464,6 +469,140 @@ app.post("/mcp", async (req, res) => {
                   "openai/toolInvocation/invoked": "Loaded influencer profiles",
                 },
               },
+              {
+                name: "analyze_hashtag_trends",
+                description:
+                  "Analyze hashtag trends used by influencers. Returns trending hashtags with usage counts and a downloadable CSV file. Example: 'What are the trending hashtags among Vietnamese beauty influencers?'",
+                inputSchema: {
+                  type: "object",
+                  properties: {
+                    country: {
+                      type: "string",
+                      description:
+                        "Country code (ISO 3166-1 Alpha-2). Examples: KR (Korea), US (USA), VN (Vietnam), JP (Japan), TH (Thailand), ID (Indonesia)",
+                    },
+                    interests: {
+                      type: "array",
+                      items: { type: "string" },
+                      description:
+                        "Interest categories to filter. Examples: Beauty, Fashion & Style, Food Culture, Travel & Leisure, Fitness",
+                    },
+                    days: {
+                      type: "number",
+                      description: "Number of days to analyze (default: 30, max: 365)",
+                      default: 30,
+                    },
+                    limit: {
+                      type: "number",
+                      description: "Maximum number of hashtags to return (default: 100)",
+                      default: 100,
+                    },
+                    gender: {
+                      type: "string",
+                      description: "Filter by gender. Values: Male, Female, Unknown",
+                      enum: ["Male", "Female", "Unknown"],
+                    },
+                    age_range: {
+                      type: "string",
+                      description: "Filter by age range. Values: 0~4, 5~9, 10~14, 15~19, 20~24, 25~29, 30~34, 35~39, 40~44, 45~49, 50~54, 55~59, 60~64, 65~69, 70+, Unknown",
+                    },
+                    ethnic_category: {
+                      type: "string",
+                      description: "Filter by ethnic category. Values: Asian, East Asian, Southeast Asian, South Asian, Caucasian, African, Hispanic/Latino, Middle Eastern/North African (MENA), Pacific Islander, Indigenous Peoples, Mixed Race, Unknown",
+                    },
+                  },
+                },
+                _meta: {
+                  "openai/toolInvocation/invoking": "Analyzing hashtag trends...",
+                  "openai/toolInvocation/invoked": "Hashtag trend analysis complete",
+                },
+              },
+              {
+                name: "analyze_content_stats",
+                description:
+                  "Get engagement statistics (likes, comments, posts) for influencer groups. Returns aggregated metrics and a downloadable CSV. Example: 'What is the average engagement for Korean fashion influencers?'",
+                inputSchema: {
+                  type: "object",
+                  properties: {
+                    country: {
+                      type: "string",
+                      description:
+                        "Country code (ISO 3166-1 Alpha-2). Examples: KR, US, VN, JP, TH, ID",
+                    },
+                    interests: {
+                      type: "array",
+                      items: { type: "string" },
+                      description:
+                        "Interest categories. Examples: Beauty, Fashion & Style, Food Culture",
+                    },
+                    days: {
+                      type: "number",
+                      description: "Number of days to analyze (default: 30, max: 365)",
+                      default: 30,
+                    },
+                    gender: {
+                      type: "string",
+                      description: "Filter by gender. Values: Male, Female, Unknown",
+                      enum: ["Male", "Female", "Unknown"],
+                    },
+                    age_range: {
+                      type: "string",
+                      description: "Filter by age range. Values: 0~4, 5~9, 10~14, 15~19, 20~24, 25~29, 30~34, 35~39, 40~44, 45~49, 50~54, 55~59, 60~64, 65~69, 70+, Unknown",
+                    },
+                    ethnic_category: {
+                      type: "string",
+                      description: "Filter by ethnic category. Values: Asian, East Asian, Southeast Asian, South Asian, Caucasian, African, Hispanic/Latino, Middle Eastern/North African (MENA), Pacific Islander, Indigenous Peoples, Mixed Race, Unknown",
+                    },
+                  },
+                },
+                _meta: {
+                  "openai/toolInvocation/invoking": "Analyzing content statistics...",
+                  "openai/toolInvocation/invoked": "Content statistics ready",
+                },
+              },
+              {
+                name: "find_trending_topics",
+                description:
+                  "Discover trending/rising topics in a specific field. Identifies hashtags with significant growth. Example: 'What topics are trending in the beauty industry this month?'",
+                inputSchema: {
+                  type: "object",
+                  properties: {
+                    field: {
+                      type: "string",
+                      description:
+                        "Field/category to analyze. Examples: Beauty, Fashion & Style, Food Culture, Fitness, Travel & Leisure",
+                      default: "Beauty",
+                    },
+                    days: {
+                      type: "number",
+                      description: "Number of days to analyze (default: 30, max: 365)",
+                      default: 30,
+                    },
+                    limit: {
+                      type: "number",
+                      description: "Number of trending topics to return (default: 50)",
+                      default: 50,
+                    },
+                    gender: {
+                      type: "string",
+                      description: "Filter by gender. Values: Male, Female, Unknown",
+                      enum: ["Male", "Female", "Unknown"],
+                    },
+                    age_range: {
+                      type: "string",
+                      description: "Filter by age range. Values: 0~4, 5~9, 10~14, 15~19, 20~24, 25~29, 30~34, 35~39, 40~44, 45~49, 50~54, 55~59, 60~64, 65~69, 70+, Unknown",
+                    },
+                    ethnic_category: {
+                      type: "string",
+                      description: "Filter by ethnic category. Values: Asian, East Asian, Southeast Asian, South Asian, Caucasian, African, Hispanic/Latino, Middle Eastern/North African (MENA), Pacific Islander, Indigenous Peoples, Mixed Race, Unknown",
+                    },
+                  },
+                },
+                _meta: {
+                  "openai/toolInvocation/invoking": "Finding trending topics...",
+                  "openai/toolInvocation/invoked": "Trending topics identified",
+                },
+              },
             ],
           },
         });
@@ -748,6 +887,189 @@ app.post("/mcp", async (req, res) => {
             console.error("=== END DEBUG ===");
 
             res.json(response);
+          } catch (error) {
+            const errorMessage =
+              error instanceof Error ? error.message : String(error);
+            res.json({
+              jsonrpc: "2.0",
+              id: id,
+              error: {
+                code: -32000,
+                message: errorMessage,
+              },
+            });
+          }
+        } else if (toolName === "analyze_hashtag_trends") {
+          // Hashtag trend analysis tool
+          try {
+            console.error("=== ANALYZE_HASHTAG_TRENDS ===");
+            const result = await analyzeHashtagTrends({
+              country: toolArgs.country,
+              interests: toolArgs.interests,
+              days: toolArgs.days || 30,
+              limit: toolArgs.limit || 100,
+            });
+
+            if (!result.success) {
+              res.json({
+                jsonrpc: "2.0",
+                id: id,
+                error: {
+                  code: -32000,
+                  message: result.error || "Analysis failed",
+                },
+              });
+              return;
+            }
+
+            // Limit data for GPT (top 50 for analysis)
+            const topData = result.data.slice(0, 50);
+
+            res.json({
+              jsonrpc: "2.0",
+              id: id,
+              result: {
+                structuredContent: {
+                  analysis: {
+                    type: "hashtag_trends",
+                    description: result.description,
+                    totalHashtags: result.totalRows,
+                    queryExecuted: result.query,
+                  },
+                  data: topData,
+                  downloadUrl: result.downloadUrl,
+                },
+                content: [
+                  {
+                    type: "text",
+                    text: `Hashtag trend analysis complete. Found ${result.totalRows} hashtags. Full data available for download.`,
+                  },
+                ],
+                _meta: {
+                  downloadUrl: result.downloadUrl,
+                  totalRows: result.totalRows,
+                },
+              },
+            });
+          } catch (error) {
+            const errorMessage =
+              error instanceof Error ? error.message : String(error);
+            res.json({
+              jsonrpc: "2.0",
+              id: id,
+              error: {
+                code: -32000,
+                message: errorMessage,
+              },
+            });
+          }
+        } else if (toolName === "analyze_content_stats") {
+          // Content statistics analysis tool
+          try {
+            console.error("=== ANALYZE_CONTENT_STATS ===");
+            const result = await analyzeContentStats({
+              country: toolArgs.country,
+              interests: toolArgs.interests,
+              days: toolArgs.days || 30,
+            });
+
+            if (!result.success) {
+              res.json({
+                jsonrpc: "2.0",
+                id: id,
+                error: {
+                  code: -32000,
+                  message: result.error || "Analysis failed",
+                },
+              });
+              return;
+            }
+
+            res.json({
+              jsonrpc: "2.0",
+              id: id,
+              result: {
+                structuredContent: {
+                  analysis: {
+                    type: "content_stats",
+                    description: result.description,
+                    queryExecuted: result.query,
+                  },
+                  data: result.data,
+                  downloadUrl: result.downloadUrl,
+                },
+                content: [
+                  {
+                    type: "text",
+                    text: `Content statistics analysis complete. Full data available for download.`,
+                  },
+                ],
+                _meta: {
+                  downloadUrl: result.downloadUrl,
+                  totalRows: result.totalRows,
+                },
+              },
+            });
+          } catch (error) {
+            const errorMessage =
+              error instanceof Error ? error.message : String(error);
+            res.json({
+              jsonrpc: "2.0",
+              id: id,
+              error: {
+                code: -32000,
+                message: errorMessage,
+              },
+            });
+          }
+        } else if (toolName === "find_trending_topics") {
+          // Trending topics analysis tool
+          try {
+            console.error("=== FIND_TRENDING_TOPICS ===");
+            const result = await findTrendingTopics({
+              field: toolArgs.field || "Beauty",
+              days: toolArgs.days || 30,
+              limit: toolArgs.limit || 50,
+            });
+
+            if (!result.success) {
+              res.json({
+                jsonrpc: "2.0",
+                id: id,
+                error: {
+                  code: -32000,
+                  message: result.error || "Analysis failed",
+                },
+              });
+              return;
+            }
+
+            res.json({
+              jsonrpc: "2.0",
+              id: id,
+              result: {
+                structuredContent: {
+                  analysis: {
+                    type: "trending_topics",
+                    description: result.description,
+                    field: toolArgs.field || "Beauty",
+                    queryExecuted: result.query,
+                  },
+                  data: result.data,
+                  downloadUrl: result.downloadUrl,
+                },
+                content: [
+                  {
+                    type: "text",
+                    text: `Trending topics analysis complete. Found ${result.totalRows} trending topics. Full data available for download.`,
+                  },
+                ],
+                _meta: {
+                  downloadUrl: result.downloadUrl,
+                  totalRows: result.totalRows,
+                },
+              },
+            });
           } catch (error) {
             const errorMessage =
               error instanceof Error ? error.message : String(error);
