@@ -154,23 +154,57 @@ function formatProfilesAsMarkdown(profiles: any[], query: string, totalCount: nu
     markdown += `- **Followers:** ${profile.followed_by?.toLocaleString() || "N/A"}\n`;
     markdown += `- **Engagement Rate:** ${profile.engagement_rate || "N/A"}${profile.engagement_rate_tag ? ` (${profile.engagement_rate_tag})` : ""}\n`;
 
+    // Profile image
+    if (profile.profile_pic_url) {
+      markdown += `- **Profile Image:** ${profile.profile_pic_url}\n`;
+    }
+
+    // Marketing core information
     if (profile.collaboration_tier) {
       markdown += `- **Collaboration Tier:** ${profile.collaboration_tier}\n`;
     }
-    if (profile.country?.length > 0) {
-      markdown += `- **Country:** ${profile.country.join(", ")}\n`;
-    }
-    if (profile.field_of_creator?.length > 0) {
-      markdown += `- **Field:** ${profile.field_of_creator.join(", ")}\n`;
-    }
-    if (profile.biography) {
-      markdown += `- **Bio:** ${profile.biography.substring(0, 150)}${profile.biography.length > 150 ? "..." : ""}\n`;
+    if (profile.account_type) {
+      markdown += `- **Account Type:** ${profile.account_type}\n`;
     }
     if (profile.willing_to_collaborate !== undefined) {
       markdown += `- **Willing to Collaborate:** ${profile.willing_to_collaborate ? "Yes" : "No"}\n`;
     }
     if (profile.collaborate_brand?.length > 0) {
       markdown += `- **Past Brand Collaborations:** ${profile.collaborate_brand.slice(0, 5).join(", ")}${profile.collaborate_brand.length > 5 ? "..." : ""}\n`;
+    }
+    if (profile.tag_brand?.length > 0) {
+      markdown += `- **Tagged Brands:** ${profile.tag_brand.slice(0, 5).join(", ")}${profile.tag_brand.length > 5 ? "..." : ""}\n`;
+    }
+    if (profile.note_for_brand_collaborate_point?.length > 0) {
+      markdown += `- **Collaboration Strengths:** ${profile.note_for_brand_collaborate_point.join(", ")}\n`;
+    }
+    if (profile.note_for_brand_weak_point?.length > 0) {
+      markdown += `- **Collaboration Weaknesses:** ${profile.note_for_brand_weak_point.join(", ")}\n`;
+    }
+
+    // Demographics & target
+    if (profile.country?.length > 0) {
+      markdown += `- **Country:** ${profile.country.join(", ")}\n`;
+    }
+    if (profile.language?.length > 0) {
+      markdown += `- **Language:** ${profile.language.join(", ")}\n`;
+    }
+    if (profile.age_range) {
+      markdown += `- **Age Range:** ${profile.age_range}\n`;
+    }
+    if (profile.field_of_creator?.length > 0) {
+      markdown += `- **Field:** ${profile.field_of_creator.join(", ")}\n`;
+    }
+    if (profile.interests?.length > 0) {
+      markdown += `- **Interests:** ${profile.interests.slice(0, 10).join(", ")}${profile.interests.length > 10 ? "..." : ""}\n`;
+    }
+    if (profile.demo_short) {
+      markdown += `- **Summary:** ${profile.demo_short}\n`;
+    }
+
+    // Biography (at the end)
+    if (profile.biography) {
+      markdown += `- **Bio:** ${profile.biography.substring(0, 200)}${profile.biography.length > 200 ? "..." : ""}\n`;
     }
 
     markdown += `\n`;
