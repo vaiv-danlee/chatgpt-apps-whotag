@@ -577,6 +577,425 @@ server.registerTool(
   }
 );
 
+// Register analyze_hashtag_trends tool
+server.registerTool(
+  "analyze_hashtag_trends",
+  {
+    title: "Analyze Hashtag Trends",
+    description:
+      "Analyze hashtag trends used by influencers. Returns trending hashtags with usage counts and a downloadable CSV file. Example: 'What are the trending hashtags among Vietnamese beauty influencers?'",
+    inputSchema: {
+      country: z
+        .string()
+        .optional()
+        .describe(
+          "Country code (ISO 3166-1 Alpha-2). Examples: KR (Korea), US (USA), VN (Vietnam), JP (Japan), TH (Thailand), ID (Indonesia)"
+        ),
+      interests: z
+        .array(z.string())
+        .optional()
+        .describe(
+          "Interest categories to filter. Examples: Beauty, Fashion & Style, Food Culture, Travel & Leisure, Fitness"
+        ),
+      days: z
+        .number()
+        .min(1)
+        .max(365)
+        .default(30)
+        .optional()
+        .describe("Number of days to analyze (default: 30, max: 365)"),
+      limit: z
+        .number()
+        .min(1)
+        .max(500)
+        .default(100)
+        .optional()
+        .describe("Maximum number of hashtags to return (default: 100)"),
+      gender: z
+        .enum(["Male", "Female", "Unknown"])
+        .optional()
+        .describe("Filter by gender"),
+      age_range: z
+        .string()
+        .optional()
+        .describe(
+          "Filter by age range. Values: 0~4, 5~9, 10~14, 15~19, 20~24, 25~29, 30~34, 35~39, 40~44, 45~49, 50~54, 55~59, 60~64, 65~69, 70+, Unknown"
+        ),
+      ethnic_category: z
+        .string()
+        .optional()
+        .describe(
+          "Filter by ethnic category. Values: Asian, East Asian, Southeast Asian, South Asian, Caucasian, African, Hispanic/Latino, Middle Eastern/North African (MENA), Pacific Islander, Indigenous Peoples, Mixed Race, Unknown"
+        ),
+    },
+    _meta: {
+      "openai/toolInvocation/invoking": "Analyzing hashtag trends...",
+      "openai/toolInvocation/invoked": "Hashtag trend analysis complete",
+    },
+  },
+  async (args) => {
+    try {
+      console.error("=== ANALYZE_HASHTAG_TRENDS (SSE) ===");
+      const result = await analyzeHashtagTrends({
+        country: args.country,
+        interests: args.interests,
+        days: args.days || 30,
+        limit: args.limit || 100,
+        gender: args.gender,
+        age_range: args.age_range,
+        ethnic_category: args.ethnic_category,
+      });
+
+      if (!result.success) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Analysis failed: ${result.error}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      // Format as markdown for standard MCP clients
+      let markdown = `## Hashtag Trend Analysis\n\n`;
+      markdown += `**Description:** ${result.description}\n`;
+      markdown += `**Total Hashtags:** ${result.totalRows}\n`;
+      markdown += `**Download CSV:** ${result.downloadUrl}\n\n`;
+      markdown += `---\n\n`;
+      markdown += `### Top 50 Hashtags\n\n`;
+
+      const topData = result.data.slice(0, 50);
+      topData.forEach((row: any, index: number) => {
+        markdown += `${index + 1}. **#${row.hashtag || row.tag}** - ${row.count || row.usage_count || "N/A"} uses\n`;
+      });
+
+      if (currentSessionHostType === "chatgpt") {
+        return {
+          structuredContent: {
+            analysis: {
+              type: "hashtag_trends",
+              description: result.description,
+              totalHashtags: result.totalRows,
+              queryExecuted: result.query,
+            },
+            data: topData,
+            downloadUrl: result.downloadUrl,
+          },
+          content: [
+            {
+              type: "text",
+              text: `Hashtag trend analysis complete. Found ${result.totalRows} hashtags. Full data available for download.`,
+            },
+          ],
+          _meta: {
+            downloadUrl: result.downloadUrl,
+            totalRows: result.totalRows,
+          },
+        };
+      } else {
+        return {
+          content: [
+            {
+              type: "text",
+              text: markdown,
+            },
+          ],
+        };
+      }
+    } catch (error) {
+      console.error("Hashtag analysis error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      return {
+        content: [
+          {
+            type: "text",
+            text: `An error occurred during analysis: ${errorMessage}`,
+          },
+        ],
+        isError: true,
+      };
+    }
+  }
+);
+
+// Register analyze_content_stats tool
+server.registerTool(
+  "analyze_content_stats",
+  {
+    title: "Analyze Content Stats",
+    description:
+      "Get engagement statistics (likes, comments, posts) for influencer groups. Returns aggregated metrics and a downloadable CSV. Example: 'What is the average engagement for Korean fashion influencers?'",
+    inputSchema: {
+      country: z
+        .string()
+        .optional()
+        .describe(
+          "Country code (ISO 3166-1 Alpha-2). Examples: KR, US, VN, JP, TH, ID"
+        ),
+      interests: z
+        .array(z.string())
+        .optional()
+        .describe(
+          "Interest categories. Examples: Beauty, Fashion & Style, Food Culture"
+        ),
+      days: z
+        .number()
+        .min(1)
+        .max(365)
+        .default(30)
+        .optional()
+        .describe("Number of days to analyze (default: 30, max: 365)"),
+      gender: z
+        .enum(["Male", "Female", "Unknown"])
+        .optional()
+        .describe("Filter by gender"),
+      age_range: z
+        .string()
+        .optional()
+        .describe(
+          "Filter by age range. Values: 0~4, 5~9, 10~14, 15~19, 20~24, 25~29, 30~34, 35~39, 40~44, 45~49, 50~54, 55~59, 60~64, 65~69, 70+, Unknown"
+        ),
+      ethnic_category: z
+        .string()
+        .optional()
+        .describe(
+          "Filter by ethnic category. Values: Asian, East Asian, Southeast Asian, South Asian, Caucasian, African, Hispanic/Latino, Middle Eastern/North African (MENA), Pacific Islander, Indigenous Peoples, Mixed Race, Unknown"
+        ),
+    },
+    _meta: {
+      "openai/toolInvocation/invoking": "Analyzing content statistics...",
+      "openai/toolInvocation/invoked": "Content statistics ready",
+    },
+  },
+  async (args) => {
+    try {
+      console.error("=== ANALYZE_CONTENT_STATS (SSE) ===");
+      const result = await analyzeContentStats({
+        country: args.country,
+        interests: args.interests,
+        days: args.days || 30,
+        gender: args.gender,
+        age_range: args.age_range,
+        ethnic_category: args.ethnic_category,
+      });
+
+      if (!result.success) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Analysis failed: ${result.error}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      // Format as markdown for standard MCP clients
+      let markdown = `## Content Statistics Analysis\n\n`;
+      markdown += `**Description:** ${result.description}\n`;
+      markdown += `**Download CSV:** ${result.downloadUrl}\n\n`;
+      markdown += `---\n\n`;
+      markdown += `### Statistics\n\n`;
+
+      result.data.forEach((row: any) => {
+        Object.entries(row).forEach(([key, value]) => {
+          markdown += `- **${key}:** ${value}\n`;
+        });
+        markdown += `\n`;
+      });
+
+      if (currentSessionHostType === "chatgpt") {
+        return {
+          structuredContent: {
+            analysis: {
+              type: "content_stats",
+              description: result.description,
+              queryExecuted: result.query,
+            },
+            data: result.data,
+            downloadUrl: result.downloadUrl,
+          },
+          content: [
+            {
+              type: "text",
+              text: `Content statistics analysis complete. Full data available for download.`,
+            },
+          ],
+          _meta: {
+            downloadUrl: result.downloadUrl,
+            totalRows: result.totalRows,
+          },
+        };
+      } else {
+        return {
+          content: [
+            {
+              type: "text",
+              text: markdown,
+            },
+          ],
+        };
+      }
+    } catch (error) {
+      console.error("Content stats error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      return {
+        content: [
+          {
+            type: "text",
+            text: `An error occurred during analysis: ${errorMessage}`,
+          },
+        ],
+        isError: true,
+      };
+    }
+  }
+);
+
+// Register find_trending_topics tool
+server.registerTool(
+  "find_trending_topics",
+  {
+    title: "Find Trending Topics",
+    description:
+      "Discover trending/rising topics in a specific field. Identifies hashtags with significant growth. Example: 'What topics are trending in the beauty industry this month?'",
+    inputSchema: {
+      field: z
+        .string()
+        .default("Beauty")
+        .optional()
+        .describe(
+          "Field/category to analyze. Examples: Beauty, Fashion & Style, Food Culture, Fitness, Travel & Leisure"
+        ),
+      days: z
+        .number()
+        .min(1)
+        .max(365)
+        .default(30)
+        .optional()
+        .describe("Number of days to analyze (default: 30, max: 365)"),
+      limit: z
+        .number()
+        .min(1)
+        .max(200)
+        .default(50)
+        .optional()
+        .describe("Number of trending topics to return (default: 50)"),
+      gender: z
+        .enum(["Male", "Female", "Unknown"])
+        .optional()
+        .describe("Filter by gender"),
+      age_range: z
+        .string()
+        .optional()
+        .describe(
+          "Filter by age range. Values: 0~4, 5~9, 10~14, 15~19, 20~24, 25~29, 30~34, 35~39, 40~44, 45~49, 50~54, 55~59, 60~64, 65~69, 70+, Unknown"
+        ),
+      ethnic_category: z
+        .string()
+        .optional()
+        .describe(
+          "Filter by ethnic category. Values: Asian, East Asian, Southeast Asian, South Asian, Caucasian, African, Hispanic/Latino, Middle Eastern/North African (MENA), Pacific Islander, Indigenous Peoples, Mixed Race, Unknown"
+        ),
+    },
+    _meta: {
+      "openai/toolInvocation/invoking": "Finding trending topics...",
+      "openai/toolInvocation/invoked": "Trending topics identified",
+    },
+  },
+  async (args) => {
+    try {
+      console.error("=== FIND_TRENDING_TOPICS (SSE) ===");
+      const result = await findTrendingTopics({
+        field: args.field || "Beauty",
+        days: args.days || 30,
+        limit: args.limit || 50,
+        gender: args.gender,
+        age_range: args.age_range,
+        ethnic_category: args.ethnic_category,
+      });
+
+      if (!result.success) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Analysis failed: ${result.error}`,
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      // Format as markdown for standard MCP clients
+      let markdown = `## Trending Topics Analysis\n\n`;
+      markdown += `**Field:** ${args.field || "Beauty"}\n`;
+      markdown += `**Description:** ${result.description}\n`;
+      markdown += `**Total Topics:** ${result.totalRows}\n`;
+      markdown += `**Download CSV:** ${result.downloadUrl}\n\n`;
+      markdown += `---\n\n`;
+      markdown += `### Trending Topics\n\n`;
+
+      result.data.forEach((row: any, index: number) => {
+        const growth = row.growth_rate ? ` (↑${row.growth_rate}%)` : "";
+        markdown += `${index + 1}. **#${row.hashtag || row.topic}**${growth}\n`;
+      });
+
+      if (currentSessionHostType === "chatgpt") {
+        return {
+          structuredContent: {
+            analysis: {
+              type: "trending_topics",
+              description: result.description,
+              field: args.field || "Beauty",
+              queryExecuted: result.query,
+            },
+            data: result.data,
+            downloadUrl: result.downloadUrl,
+          },
+          content: [
+            {
+              type: "text",
+              text: `Trending topics analysis complete. Found ${result.totalRows} trending topics. Full data available for download.`,
+            },
+          ],
+          _meta: {
+            downloadUrl: result.downloadUrl,
+            totalRows: result.totalRows,
+          },
+        };
+      } else {
+        return {
+          content: [
+            {
+              type: "text",
+              text: markdown,
+            },
+          ],
+        };
+      }
+    } catch (error) {
+      console.error("Trending topics error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      return {
+        content: [
+          {
+            type: "text",
+            text: `An error occurred during analysis: ${errorMessage}`,
+          },
+        ],
+        isError: true,
+      };
+    }
+  }
+);
+
 // Health check
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
