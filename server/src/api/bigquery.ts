@@ -1,14 +1,20 @@
 import { BigQuery } from "@google-cloud/bigquery";
+import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Initialize BigQuery client with service account
+// Initialize BigQuery client
+// - Cloud Run: uses Application Default Credentials (service account)
+// - Local: uses key file if exists, otherwise ADC
+const keyFilePath = join(__dirname, "../../../mmm-lab-8dae8dbd9a6f.json");
+const useKeyFile = existsSync(keyFilePath);
+
 const bigquery = new BigQuery({
-  keyFilename: join(__dirname, "../../../mmm-lab-8dae8dbd9a6f.json"),
   projectId: "mmm-lab",
+  ...(useKeyFile && { keyFilename: keyFilePath }),
 });
 
 export interface QueryResult {
