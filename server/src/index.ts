@@ -686,7 +686,7 @@ server.registerTool(
           content: [
             {
               type: "text",
-              text: `Hashtag trend analysis complete. Found ${result.totalRows} hashtags. Full data available for download.`,
+              text: `Hashtag trend analysis complete. Found ${result.totalRows} hashtags.\n\n**📥 Download Full Data (CSV):** ${result.downloadUrl}`,
             },
           ],
           _meta: {
@@ -822,7 +822,7 @@ server.registerTool(
           content: [
             {
               type: "text",
-              text: `Content statistics analysis complete. Full data available for download.`,
+              text: `Content statistics analysis complete.\n\n**📥 Download Full Data (CSV):** ${result.downloadUrl}`,
             },
           ],
           _meta: {
@@ -961,7 +961,7 @@ server.registerTool(
           content: [
             {
               type: "text",
-              text: `Trending topics analysis complete. Found ${result.totalRows} trending topics. Full data available for download.`,
+              text: `Trending topics analysis complete. Found ${result.totalRows} trending topics.\n\n**📥 Download Full Data (CSV):** ${result.downloadUrl}`,
             },
           ],
           _meta: {
@@ -1594,7 +1594,7 @@ app.post("/mcp", async (req, res) => {
                 content: [
                   {
                     type: "text",
-                    text: `Hashtag trend analysis complete. Found ${result.totalRows} hashtags. Full data available for download.`,
+                    text: `Hashtag trend analysis complete. Found ${result.totalRows} hashtags.\n\n**📥 Download Full Data (CSV):** ${result.downloadUrl}`,
                   },
                 ],
                 _meta: {
@@ -1653,7 +1653,7 @@ app.post("/mcp", async (req, res) => {
                 content: [
                   {
                     type: "text",
-                    text: `Content statistics analysis complete. Full data available for download.`,
+                    text: `Content statistics analysis complete.\n\n**📥 Download Full Data (CSV):** ${result.downloadUrl}`,
                   },
                 ],
                 _meta: {
@@ -1713,7 +1713,7 @@ app.post("/mcp", async (req, res) => {
                 content: [
                   {
                     type: "text",
-                    text: `Trending topics analysis complete. Found ${result.totalRows} trending topics. Full data available for download.`,
+                    text: `Trending topics analysis complete. Found ${result.totalRows} trending topics.\n\n**📥 Download Full Data (CSV):** ${result.downloadUrl}`,
                   },
                 ],
                 _meta: {
