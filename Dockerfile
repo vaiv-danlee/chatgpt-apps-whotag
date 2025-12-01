@@ -43,6 +43,7 @@ RUN cd server && pnpm install --prod --frozen-lockfile || pnpm install --prod
 # Copy built files from builder
 COPY --from=builder /app/server/dist ./server/dist
 COPY --from=builder /app/web/dist ./web/dist
+COPY --from=builder /app/docs ./docs
 
 # Set environment variables
 ENV NODE_ENV=production
