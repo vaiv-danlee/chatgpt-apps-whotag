@@ -2,20 +2,23 @@
 
 ChatGPT Apps SDK를 사용하여 구현한 자연어 인플루언서 검색 앱입니다. whotag.ai API와 연동하여 인플루언서를 검색하고 캐러셀 형태로 결과를 표시합니다.
 
+**MCP 호환**: ChatGPT 외에도 Claude Desktop, Cursor 등 표준 MCP 클라이언트에서도 사용할 수 있습니다.
+
 ## 주요 기능
 
-### 인플루언서 검색
+### 인플루언서 검색 (`search_influencers`)
 - **자연어 검색**: "대한민국의 육아 인플루언서" 같은 자연어로 검색
-- **캐러셀 UI**: 3명씩 표시되는 캐러셀 형태의 프로필 카드
-- **전체화면 뷰어**: 이미지 클릭 시 전체화면으로 확대 보기
-- **상세 정보**: 팔로워 수, 타이틀, 소셜 링크 등 표시
+- **ChatGPT**: 캐러셀 UI로 프로필 카드 표시 (3명씩 슬라이드)
+- **표준 MCP 클라이언트**: 마크다운 형식으로 상세 정보 제공
+- **전체화면 뷰어**: 이미지 클릭 시 전체화면으로 확대 보기 (ChatGPT)
+- **상세 정보**: 팔로워 수, 참여율, 협업 이력, 관심사 등 표시
 - **whotag.ai 연동**: 각 프로필에서 whotag.ai로 이동 가능
 
-### BigQuery 분석 도구
+### BigQuery 분석 도구 (`analyze_hashtag_trends`, `analyze_content_stats`)
 - **해시태그 트렌드 분석**: 특정 조건의 인플루언서들이 사용하는 해시태그 트렌드 분석
 - **콘텐츠 통계 분석**: 인플루언서 그룹의 콘텐츠 참여율 및 통계 분석
-- **다양한 필터**: 국가, 관심사, 성별, 연령대, 민족 카테고리 등으로 필터링
-- **CSV 다운로드**: 분석 결과를 CSV 파일로 다운로드 가능
+- **다양한 필터**: 국가(ISO 코드), 관심사, 성별, 연령대, 민족 카테고리 등으로 필터링
+- **CSV 다운로드**: 분석 결과를 CSV 파일로 다운로드 (Signed URL, 24시간 유효)
 
 ## 프로젝트 구조
 
@@ -60,6 +63,9 @@ chatgpt-apps-whotag/
 │       ├── content_stats.sql
 │       └── trending_topics.sql
 │
+├── cloudbuild.yaml           # Cloud Build 설정 (프로덕션)
+├── cloudbuild-dev.yaml       # Cloud Build 설정 (개발)
+├── Dockerfile                # Docker 이미지 빌드
 ├── package.json              # 루트 패키지 (워크스페이스 스크립트)
 ├── CLAUDE.md                 # Claude Code 가이드
 └── README.md                 # 이 파일
@@ -128,6 +134,22 @@ ngrok http 3000
    - Schema URL: `https://your-ngrok-url.ngrok.io/mcp`
    - Actions Type: `MCP`
 
+### 5. Claude Desktop / Cursor 연결 (표준 MCP)
+
+`claude_desktop_config.json` 또는 Cursor MCP 설정에 추가:
+
+```json
+{
+  "mcpServers": {
+    "whotag": {
+      "url": "http://localhost:3000/mcp/sse"
+    }
+  }
+}
+```
+
+표준 MCP 클라이언트에서는 UI 위젯 대신 마크다운 형식으로 결과가 표시됩니다.
+
 ## 테스트
 
 서버 상태 확인:
@@ -178,9 +200,9 @@ ChatGPT에서 테스트:
 
 ### MCP 서버 패턴
 
-서버는 MCP (Model Context Protocol) SDK를 사용하여 ChatGPT에 도구와 리소스를 노출합니다:
+서버는 MCP (Model Context Protocol) SDK를 사용하여 ChatGPT와 표준 MCP 클라이언트에 도구와 리소스를 노출합니다:
 
-- **Resource**: `ui://widget/carousel.html` - CSP 설정이 포함된 React 컴포넌트
+- **Resource**: `ui://widget/carousel.html` - CSP 설정이 포함된 React 컴포넌트 (ChatGPT 전용)
 - **Tool**: `search_influencers` - 인플루언서 검색 기능
 - **Tool**: `analyze_hashtag_trends` - 해시태그 트렌드 분석
 - **Tool**: `analyze_content_stats` - 콘텐츠 참여 통계 분석
@@ -188,6 +210,31 @@ ChatGPT에서 테스트:
 MCP 서버는 SSE (Server-Sent Events)를 사용한 양방향 통신:
 - `GET /mcp/sse` - SSE 연결 수립
 - `POST /mcp/message` - 세션 ID를 통한 클라이언트 메시지 처리
+
+### Host Type 감지
+
+서버는 클라이언트 유형을 자동으로 감지하여 적절한 응답 형식을 반환합니다:
+
+| 클라이언트 | 감지 방법 | 응답 형식 |
+|-----------|----------|----------|
+| ChatGPT | User-Agent에 `openai-mcp` 포함 또는 Origin이 `chatgpt.com` | UI 위젯 + structuredContent |
+| Claude, Cursor 등 | 그 외 모든 클라이언트 | 마크다운 텍스트 |
+
+**ChatGPT 응답 예시:**
+```json
+{
+  "structuredContent": { "summary": {...}, "influencers": [...] },
+  "content": [{ "type": "text", "text": "Found 50 influencers..." }],
+  "_meta": { "openai/outputTemplate": "ui://widget/carousel.html", ... }
+}
+```
+
+**표준 MCP 응답 예시:**
+```json
+{
+  "content": [{ "type": "text", "text": "## Influencer Search Results\n..." }]
+}
+```
 
 ### API 통합 흐름
 
@@ -279,27 +326,46 @@ MCP 서버는 SSE (Server-Sent Events)를 사용한 양방향 통신:
 
 ### GitHub 연동 자동 배포
 
+프로덕션과 개발 환경을 위한 두 가지 Cloud Build 설정이 있습니다:
+
+| 환경 | 설정 파일 | 브랜치 | 서비스 이름 |
+|-----|----------|--------|------------|
+| 프로덕션 | `cloudbuild.yaml` | `main` | `whotag-chatgpt-app` |
+| 개발 | `cloudbuild-dev.yaml` | `develop` | `whotag-chatgpt-app-dev` |
+
 1. **Cloud Build 트리거 생성**
    - GCP Console → Cloud Build → 트리거 → 트리거 만들기
    - 저장소: GitHub 저장소 연결
-   - 브랜치: `^main$` (또는 원하는 브랜치)
-   - 구성: `cloudbuild.yaml` 선택
+   - 브랜치: `^main$` (프로덕션) 또는 `^develop$` (개발)
+   - 구성: 해당 `cloudbuild*.yaml` 선택
 
 2. **또는 CLI로 트리거 생성**
    ```bash
+   # 프로덕션 트리거
    gcloud builds triggers create github \
      --name="whotag-chatgpt-app-deploy" \
      --repo-name="chatgpt-apps-whotag" \
      --repo-owner="your-github-username" \
      --branch-pattern="^main$" \
      --build-config="cloudbuild.yaml"
+
+   # 개발 트리거
+   gcloud builds triggers create github \
+     --name="whotag-chatgpt-app-deploy-dev" \
+     --repo-name="chatgpt-apps-whotag" \
+     --repo-owner="your-github-username" \
+     --branch-pattern="^develop$" \
+     --build-config="cloudbuild-dev.yaml"
    ```
 
 ### 수동 배포
 
 ```bash
-# Cloud Build로 직접 배포
+# 프로덕션 배포
 gcloud builds submit --config=cloudbuild.yaml
+
+# 개발 환경 배포
+gcloud builds submit --config=cloudbuild-dev.yaml
 
 # 또는 Cloud Run 소스 배포 (Dockerfile 사용)
 gcloud run deploy whotag-chatgpt-app \
@@ -312,13 +378,31 @@ gcloud run deploy whotag-chatgpt-app \
 
 1. **배포된 URL 확인**
    ```bash
+   # 프로덕션
    gcloud run services describe whotag-chatgpt-app \
+     --region asia-northeast3 \
+     --format='value(status.url)'
+
+   # 개발
+   gcloud run services describe whotag-chatgpt-app-dev \
      --region asia-northeast3 \
      --format='value(status.url)'
    ```
 
 2. **ChatGPT Actions 업데이트**
    - Schema URL을 Cloud Run URL로 변경: `https://whotag-chatgpt-app-xxxxx.asia-northeast3.run.app/mcp`
+
+3. **표준 MCP 클라이언트 연결**
+   - Claude Desktop이나 Cursor에서 배포된 URL 사용:
+   ```json
+   {
+     "mcpServers": {
+       "whotag": {
+         "url": "https://whotag-chatgpt-app-xxxxx.asia-northeast3.run.app/mcp/sse"
+       }
+     }
+   }
+   ```
 
 ## 주의사항
 
@@ -327,6 +411,7 @@ gcloud run deploy whotag-chatgpt-app \
 - 프로덕션 배포 시 HTTPS 필수
 - ESM Only: server와 web 모두 `"type": "module"` 사용
 - BigQuery 분석 도구 사용 시 GCP 프로젝트 및 권한 설정 필요
+- 표준 MCP 클라이언트는 UI 위젯을 지원하지 않으므로 마크다운 응답만 제공됨
 
 ## 추가 문서
 
