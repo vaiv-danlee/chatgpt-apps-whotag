@@ -34,3 +34,6 @@ coverage/
 # Temporary files
 tmp/
 temp/
+
+# GCP credentials
+mmm-lab-8dae8dbd9a6f.json
