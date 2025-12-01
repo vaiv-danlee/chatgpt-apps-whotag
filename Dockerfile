@@ -6,13 +6,15 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 
 WORKDIR /app
 
-# Copy package files
+# Copy all package files
 COPY package.json pnpm-lock.yaml* ./
 COPY server/package.json server/
 COPY web/package.json web/
 
-# Install dependencies
+# Install all dependencies (root, server, web)
 RUN pnpm install --frozen-lockfile || pnpm install
+RUN cd server && pnpm install --frozen-lockfile || pnpm install
+RUN cd web && pnpm install --frozen-lockfile || pnpm install
 
 # Copy source files
 COPY . .
