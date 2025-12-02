@@ -592,10 +592,24 @@ server.registerTool(
           "Country code (ISO 3166-1 Alpha-2). Examples: KR (Korea), US (USA), VN (Vietnam), JP (Japan), TH (Thailand), ID (Indonesia)"
         ),
       interests: z
-        .array(z.string())
+        .array(z.enum([
+          "Fashion & Style", "Accessories & Jewelry", "Beauty", "Hair Care",
+          "Food Culture", "Meals", "Beverages", "Alcoholic Beverages", "Snacks & Desserts",
+          "Travel & Leisure", "Relationships & Emotions",
+          "Fitness", "Ball Sports", "Outdoor Sports", "Indoor Sports", "Sports Events",
+          "Wellness", "Healthcare", "Child Care & Parenting", "Pets",
+          "Household Management", "Interior & Decor",
+          "Photography", "Visual Arts", "Performing Arts", "Music", "Literature & Writing",
+          "Media & Entertainment", "New Media", "Crafts", "Fan Culture", "Games",
+          "Personal Development", "Academic Studies", "Student Life",
+          "Business & Marketing", "Startups & Small Business", "Personal Finance",
+          "Automotive", "Technology & Innovation", "Consumer Electronics",
+          "Values & Human Rights", "Environment & Sustainability", "Community Engagement",
+          "Religion & Politics", "Shopping & Deals", "Other"
+        ]))
         .optional()
         .describe(
-          "Interest categories to filter. Examples: Beauty, Fashion & Style, Food Culture, Travel & Leisure, Fitness"
+          "Interest categories to filter (multiple selection allowed)"
         ),
       days: z
         .number()
@@ -616,17 +630,23 @@ server.registerTool(
         .optional()
         .describe("Filter by gender"),
       age_range: z
-        .string()
+        .array(z.enum([
+          "0~4", "5~9", "10~14", "15~19", "20~24", "25~29", "30~34", "35~39",
+          "40~44", "45~49", "50~54", "55~59", "60~64", "65~69", "70+", "Unknown"
+        ]))
         .optional()
         .describe(
-          "Filter by age range. Values: 0~4, 5~9, 10~14, 15~19, 20~24, 25~29, 30~34, 35~39, 40~44, 45~49, 50~54, 55~59, 60~64, 65~69, 70+, Unknown"
+          "Filter by age range(s). Example for 20s: [\"20~24\", \"25~29\"]"
         ),
       ethnic_category: z
-        .string()
+        .enum([
+          "Asian", "East Asian", "Southeast Asian", "South Asian",
+          "Caucasian", "African", "Hispanic/Latino",
+          "Middle Eastern/North African (MENA)", "Pacific Islander",
+          "Indigenous Peoples", "Mixed Race", "Unknown"
+        ])
         .optional()
-        .describe(
-          "Filter by ethnic category. Values: Asian, East Asian, Southeast Asian, South Asian, Caucasian, African, Hispanic/Latino, Middle Eastern/North African (MENA), Pacific Islander, Indigenous Peoples, Mixed Race, Unknown"
-        ),
+        .describe("Filter by ethnic category"),
     },
     _meta: {
       "openai/toolInvocation/invoking": "Analyzing hashtag trends...",
@@ -736,10 +756,24 @@ server.registerTool(
           "Country code (ISO 3166-1 Alpha-2). Examples: KR, US, VN, JP, TH, ID"
         ),
       interests: z
-        .array(z.string())
+        .array(z.enum([
+          "Fashion & Style", "Accessories & Jewelry", "Beauty", "Hair Care",
+          "Food Culture", "Meals", "Beverages", "Alcoholic Beverages", "Snacks & Desserts",
+          "Travel & Leisure", "Relationships & Emotions",
+          "Fitness", "Ball Sports", "Outdoor Sports", "Indoor Sports", "Sports Events",
+          "Wellness", "Healthcare", "Child Care & Parenting", "Pets",
+          "Household Management", "Interior & Decor",
+          "Photography", "Visual Arts", "Performing Arts", "Music", "Literature & Writing",
+          "Media & Entertainment", "New Media", "Crafts", "Fan Culture", "Games",
+          "Personal Development", "Academic Studies", "Student Life",
+          "Business & Marketing", "Startups & Small Business", "Personal Finance",
+          "Automotive", "Technology & Innovation", "Consumer Electronics",
+          "Values & Human Rights", "Environment & Sustainability", "Community Engagement",
+          "Religion & Politics", "Shopping & Deals", "Other"
+        ]))
         .optional()
         .describe(
-          "Interest categories. Examples: Beauty, Fashion & Style, Food Culture"
+          "Interest categories to filter (multiple selection allowed)"
         ),
       days: z
         .number()
@@ -753,17 +787,23 @@ server.registerTool(
         .optional()
         .describe("Filter by gender"),
       age_range: z
-        .string()
+        .array(z.enum([
+          "0~4", "5~9", "10~14", "15~19", "20~24", "25~29", "30~34", "35~39",
+          "40~44", "45~49", "50~54", "55~59", "60~64", "65~69", "70+", "Unknown"
+        ]))
         .optional()
         .describe(
-          "Filter by age range. Values: 0~4, 5~9, 10~14, 15~19, 20~24, 25~29, 30~34, 35~39, 40~44, 45~49, 50~54, 55~59, 60~64, 65~69, 70+, Unknown"
+          "Filter by age range(s). Example for 20s: [\"20~24\", \"25~29\"]"
         ),
       ethnic_category: z
-        .string()
+        .enum([
+          "Asian", "East Asian", "Southeast Asian", "South Asian",
+          "Caucasian", "African", "Hispanic/Latino",
+          "Middle Eastern/North African (MENA)", "Pacific Islander",
+          "Indigenous Peoples", "Mixed Race", "Unknown"
+        ])
         .optional()
-        .describe(
-          "Filter by ethnic category. Values: Asian, East Asian, Southeast Asian, South Asian, Caucasian, African, Hispanic/Latino, Middle Eastern/North African (MENA), Pacific Islander, Indigenous Peoples, Mixed Race, Unknown"
-        ),
+        .describe("Filter by ethnic category"),
     },
     _meta: {
       "openai/toolInvocation/invoking": "Analyzing content statistics...",
@@ -866,12 +906,24 @@ server.registerTool(
       "Discover trending/rising topics in a specific field. Identifies hashtags with significant growth. Example: 'What topics are trending in the beauty industry this month?'",
     inputSchema: {
       field: z
-        .string()
+        .enum([
+          "Fashion & Style", "Accessories & Jewelry", "Beauty", "Hair Care",
+          "Food Culture", "Meals", "Beverages", "Alcoholic Beverages", "Snacks & Desserts",
+          "Travel & Leisure", "Relationships & Emotions",
+          "Fitness", "Ball Sports", "Outdoor Sports", "Indoor Sports", "Sports Events",
+          "Wellness", "Healthcare", "Child Care & Parenting", "Pets",
+          "Household Management", "Interior & Decor",
+          "Photography", "Visual Arts", "Performing Arts", "Music", "Literature & Writing",
+          "Media & Entertainment", "New Media", "Crafts", "Fan Culture", "Games",
+          "Personal Development", "Academic Studies", "Student Life",
+          "Business & Marketing", "Startups & Small Business", "Personal Finance",
+          "Automotive", "Technology & Innovation", "Consumer Electronics",
+          "Values & Human Rights", "Environment & Sustainability", "Community Engagement",
+          "Religion & Politics", "Shopping & Deals", "Other"
+        ])
         .default("Beauty")
         .optional()
-        .describe(
-          "Field/category to analyze. Examples: Beauty, Fashion & Style, Food Culture, Fitness, Travel & Leisure"
-        ),
+        .describe("Field/category to analyze"),
       days: z
         .number()
         .min(1)
@@ -891,17 +943,23 @@ server.registerTool(
         .optional()
         .describe("Filter by gender"),
       age_range: z
-        .string()
+        .array(z.enum([
+          "0~4", "5~9", "10~14", "15~19", "20~24", "25~29", "30~34", "35~39",
+          "40~44", "45~49", "50~54", "55~59", "60~64", "65~69", "70+", "Unknown"
+        ]))
         .optional()
         .describe(
-          "Filter by age range. Values: 0~4, 5~9, 10~14, 15~19, 20~24, 25~29, 30~34, 35~39, 40~44, 45~49, 50~54, 55~59, 60~64, 65~69, 70+, Unknown"
+          "Filter by age range(s). Example for 20s: [\"20~24\", \"25~29\"]"
         ),
       ethnic_category: z
-        .string()
+        .enum([
+          "Asian", "East Asian", "Southeast Asian", "South Asian",
+          "Caucasian", "African", "Hispanic/Latino",
+          "Middle Eastern/North African (MENA)", "Pacific Islander",
+          "Indigenous Peoples", "Mixed Race", "Unknown"
+        ])
         .optional()
-        .describe(
-          "Filter by ethnic category. Values: Asian, East Asian, Southeast Asian, South Asian, Caucasian, African, Hispanic/Latino, Middle Eastern/North African (MENA), Pacific Islander, Indigenous Peoples, Mixed Race, Unknown"
-        ),
+        .describe("Filter by ethnic category"),
     },
     _meta: {
       "openai/toolInvocation/invoking": "Finding trending topics...",
@@ -1115,9 +1173,26 @@ app.post("/mcp", async (req, res) => {
                     },
                     interests: {
                       type: "array",
-                      items: { type: "string" },
+                      items: {
+                        type: "string",
+                        enum: [
+                          "Fashion & Style", "Accessories & Jewelry", "Beauty", "Hair Care",
+                          "Food Culture", "Meals", "Beverages", "Alcoholic Beverages", "Snacks & Desserts",
+                          "Travel & Leisure", "Relationships & Emotions",
+                          "Fitness", "Ball Sports", "Outdoor Sports", "Indoor Sports", "Sports Events",
+                          "Wellness", "Healthcare", "Child Care & Parenting", "Pets",
+                          "Household Management", "Interior & Decor",
+                          "Photography", "Visual Arts", "Performing Arts", "Music", "Literature & Writing",
+                          "Media & Entertainment", "New Media", "Crafts", "Fan Culture", "Games",
+                          "Personal Development", "Academic Studies", "Student Life",
+                          "Business & Marketing", "Startups & Small Business", "Personal Finance",
+                          "Automotive", "Technology & Innovation", "Consumer Electronics",
+                          "Values & Human Rights", "Environment & Sustainability", "Community Engagement",
+                          "Religion & Politics", "Shopping & Deals", "Other"
+                        ],
+                      },
                       description:
-                        "Interest categories to filter. Examples: Beauty, Fashion & Style, Food Culture, Travel & Leisure, Fitness",
+                        "Interest categories to filter (multiple selection allowed)",
                     },
                     days: {
                       type: "number",
@@ -1135,12 +1210,25 @@ app.post("/mcp", async (req, res) => {
                       enum: ["Male", "Female", "Unknown"],
                     },
                     age_range: {
-                      type: "string",
-                      description: "Filter by age range. Values: 0~4, 5~9, 10~14, 15~19, 20~24, 25~29, 30~34, 35~39, 40~44, 45~49, 50~54, 55~59, 60~64, 65~69, 70+, Unknown",
+                      type: "array",
+                      items: {
+                        type: "string",
+                        enum: [
+                          "0~4", "5~9", "10~14", "15~19", "20~24", "25~29", "30~34", "35~39",
+                          "40~44", "45~49", "50~54", "55~59", "60~64", "65~69", "70+", "Unknown"
+                        ],
+                      },
+                      description: "Filter by age range(s). Example for 20s: [\"20~24\", \"25~29\"]",
                     },
                     ethnic_category: {
                       type: "string",
-                      description: "Filter by ethnic category. Values: Asian, East Asian, Southeast Asian, South Asian, Caucasian, African, Hispanic/Latino, Middle Eastern/North African (MENA), Pacific Islander, Indigenous Peoples, Mixed Race, Unknown",
+                      description: "Filter by ethnic category",
+                      enum: [
+                        "Asian", "East Asian", "Southeast Asian", "South Asian",
+                        "Caucasian", "African", "Hispanic/Latino",
+                        "Middle Eastern/North African (MENA)", "Pacific Islander",
+                        "Indigenous Peoples", "Mixed Race", "Unknown"
+                      ],
                     },
                   },
                 },
@@ -1163,9 +1251,26 @@ app.post("/mcp", async (req, res) => {
                     },
                     interests: {
                       type: "array",
-                      items: { type: "string" },
+                      items: {
+                        type: "string",
+                        enum: [
+                          "Fashion & Style", "Accessories & Jewelry", "Beauty", "Hair Care",
+                          "Food Culture", "Meals", "Beverages", "Alcoholic Beverages", "Snacks & Desserts",
+                          "Travel & Leisure", "Relationships & Emotions",
+                          "Fitness", "Ball Sports", "Outdoor Sports", "Indoor Sports", "Sports Events",
+                          "Wellness", "Healthcare", "Child Care & Parenting", "Pets",
+                          "Household Management", "Interior & Decor",
+                          "Photography", "Visual Arts", "Performing Arts", "Music", "Literature & Writing",
+                          "Media & Entertainment", "New Media", "Crafts", "Fan Culture", "Games",
+                          "Personal Development", "Academic Studies", "Student Life",
+                          "Business & Marketing", "Startups & Small Business", "Personal Finance",
+                          "Automotive", "Technology & Innovation", "Consumer Electronics",
+                          "Values & Human Rights", "Environment & Sustainability", "Community Engagement",
+                          "Religion & Politics", "Shopping & Deals", "Other"
+                        ],
+                      },
                       description:
-                        "Interest categories. Examples: Beauty, Fashion & Style, Food Culture",
+                        "Interest categories to filter (multiple selection allowed)",
                     },
                     days: {
                       type: "number",
@@ -1178,12 +1283,25 @@ app.post("/mcp", async (req, res) => {
                       enum: ["Male", "Female", "Unknown"],
                     },
                     age_range: {
-                      type: "string",
-                      description: "Filter by age range. Values: 0~4, 5~9, 10~14, 15~19, 20~24, 25~29, 30~34, 35~39, 40~44, 45~49, 50~54, 55~59, 60~64, 65~69, 70+, Unknown",
+                      type: "array",
+                      items: {
+                        type: "string",
+                        enum: [
+                          "0~4", "5~9", "10~14", "15~19", "20~24", "25~29", "30~34", "35~39",
+                          "40~44", "45~49", "50~54", "55~59", "60~64", "65~69", "70+", "Unknown"
+                        ],
+                      },
+                      description: "Filter by age range(s). Example for 20s: [\"20~24\", \"25~29\"]",
                     },
                     ethnic_category: {
                       type: "string",
-                      description: "Filter by ethnic category. Values: Asian, East Asian, Southeast Asian, South Asian, Caucasian, African, Hispanic/Latino, Middle Eastern/North African (MENA), Pacific Islander, Indigenous Peoples, Mixed Race, Unknown",
+                      description: "Filter by ethnic category",
+                      enum: [
+                        "Asian", "East Asian", "Southeast Asian", "South Asian",
+                        "Caucasian", "African", "Hispanic/Latino",
+                        "Middle Eastern/North African (MENA)", "Pacific Islander",
+                        "Indigenous Peoples", "Mixed Race", "Unknown"
+                      ],
                     },
                   },
                 },
@@ -1201,9 +1319,23 @@ app.post("/mcp", async (req, res) => {
                   properties: {
                     field: {
                       type: "string",
-                      description:
-                        "Field/category to analyze. Examples: Beauty, Fashion & Style, Food Culture, Fitness, Travel & Leisure",
+                      description: "Field/category to analyze",
                       default: "Beauty",
+                      enum: [
+                        "Fashion & Style", "Accessories & Jewelry", "Beauty", "Hair Care",
+                        "Food Culture", "Meals", "Beverages", "Alcoholic Beverages", "Snacks & Desserts",
+                        "Travel & Leisure", "Relationships & Emotions",
+                        "Fitness", "Ball Sports", "Outdoor Sports", "Indoor Sports", "Sports Events",
+                        "Wellness", "Healthcare", "Child Care & Parenting", "Pets",
+                        "Household Management", "Interior & Decor",
+                        "Photography", "Visual Arts", "Performing Arts", "Music", "Literature & Writing",
+                        "Media & Entertainment", "New Media", "Crafts", "Fan Culture", "Games",
+                        "Personal Development", "Academic Studies", "Student Life",
+                        "Business & Marketing", "Startups & Small Business", "Personal Finance",
+                        "Automotive", "Technology & Innovation", "Consumer Electronics",
+                        "Values & Human Rights", "Environment & Sustainability", "Community Engagement",
+                        "Religion & Politics", "Shopping & Deals", "Other"
+                      ],
                     },
                     days: {
                       type: "number",
@@ -1221,12 +1353,25 @@ app.post("/mcp", async (req, res) => {
                       enum: ["Male", "Female", "Unknown"],
                     },
                     age_range: {
-                      type: "string",
-                      description: "Filter by age range. Values: 0~4, 5~9, 10~14, 15~19, 20~24, 25~29, 30~34, 35~39, 40~44, 45~49, 50~54, 55~59, 60~64, 65~69, 70+, Unknown",
+                      type: "array",
+                      items: {
+                        type: "string",
+                        enum: [
+                          "0~4", "5~9", "10~14", "15~19", "20~24", "25~29", "30~34", "35~39",
+                          "40~44", "45~49", "50~54", "55~59", "60~64", "65~69", "70+", "Unknown"
+                        ],
+                      },
+                      description: "Filter by age range(s). Example for 20s: [\"20~24\", \"25~29\"]",
                     },
                     ethnic_category: {
                       type: "string",
-                      description: "Filter by ethnic category. Values: Asian, East Asian, Southeast Asian, South Asian, Caucasian, African, Hispanic/Latino, Middle Eastern/North African (MENA), Pacific Islander, Indigenous Peoples, Mixed Race, Unknown",
+                      description: "Filter by ethnic category",
+                      enum: [
+                        "Asian", "East Asian", "Southeast Asian", "South Asian",
+                        "Caucasian", "African", "Hispanic/Latino",
+                        "Middle Eastern/North African (MENA)", "Pacific Islander",
+                        "Indigenous Peoples", "Mixed Race", "Unknown"
+                      ],
                     },
                   },
                 },

@@ -16,7 +16,7 @@ WITH filtered_influencers AS (
     AND gender = '{{gender}}'
     {{/if}}
     {{#if age_range}}
-    AND age_range = '{{age_range}}'
+    AND age_range IN ({{#each age_range}}'{{this}}'{{#unless @last}}, {{/unless}}{{/each}})
     {{/if}}
     {{#if ethnic_category}}
     AND ethnic_category = '{{ethnic_category}}'

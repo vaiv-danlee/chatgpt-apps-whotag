@@ -15,7 +15,7 @@ export interface AnalyticsResult {
 // Common demographic filter parameters
 export interface DemographicFilters {
   gender?: string;
-  age_range?: string;
+  age_range?: string[];  // e.g., ["20~24", "25~29"] for 20s
   ethnic_category?: string;
 }
 
@@ -43,8 +43,8 @@ export async function analyzeHashtagTrends(params: {
   if (gender) {
     conditions.push(`성별: ${gender}`);
   }
-  if (age_range) {
-    conditions.push(`연령대: ${age_range}`);
+  if (age_range && age_range.length > 0) {
+    conditions.push(`연령대: ${age_range.join(", ")}`);
   }
   if (ethnic_category) {
     conditions.push(`민족: ${ethnic_category}`);
@@ -123,8 +123,8 @@ export async function analyzeContentStats(params: {
   if (gender) {
     conditions.push(`성별: ${gender}`);
   }
-  if (age_range) {
-    conditions.push(`연령대: ${age_range}`);
+  if (age_range && age_range.length > 0) {
+    conditions.push(`연령대: ${age_range.join(", ")}`);
   }
   if (ethnic_category) {
     conditions.push(`민족: ${ethnic_category}`);
@@ -192,8 +192,8 @@ export async function findTrendingTopics(params: {
   if (gender) {
     conditions.push(`성별: ${gender}`);
   }
-  if (age_range) {
-    conditions.push(`연령대: ${age_range}`);
+  if (age_range && age_range.length > 0) {
+    conditions.push(`연령대: ${age_range.join(", ")}`);
   }
   if (ethnic_category) {
     conditions.push(`민족: ${ethnic_category}`);
