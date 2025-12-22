@@ -3626,21 +3626,13 @@ app.post("/mcp", async (req, res) => {
         } else {
           // Delegate to MCP server's registered tools
           const registeredToolsForCall = (server as any)._registeredTools || {};
-          console.error(`=== REGISTERED TOOLS DEBUG ===`);
-          console.error(`Available tools: ${Object.keys(registeredToolsForCall).join(', ')}`);
-          console.error(`Looking for: ${toolName}`);
           const registeredTool = registeredToolsForCall[toolName];
-          console.error(`Found tool: ${!!registeredTool}`);
-          if (registeredTool) {
-            console.error(`Tool keys: ${Object.keys(registeredTool).join(', ')}`);
-          }
 
-          // MCP SDK uses 'handler' not 'callback'
-          const toolHandler = registeredTool?.callback || registeredTool?.handler;
-          if (registeredTool && toolHandler) {
+          // MCP SDK 1.21+ uses 'handler' property for tool callbacks
+          if (registeredTool?.handler) {
             try {
               console.error(`Delegating to registered tool: ${toolName}`);
-              const result = await toolHandler(toolArgs, {});
+              const result = await registeredTool.handler(toolArgs, {});
               res.json({
                 jsonrpc: "2.0",
                 id: id,

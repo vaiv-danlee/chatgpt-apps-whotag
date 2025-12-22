@@ -6,15 +6,13 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 
 WORKDIR /app
 
-# Copy all package files
-COPY package.json pnpm-lock.yaml* ./
+# Copy all package files including workspace config
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY server/package.json server/
 COPY web/package.json web/
 
-# Install all dependencies (root, server, web)
-RUN pnpm install --frozen-lockfile || pnpm install
-RUN cd server && pnpm install --frozen-lockfile || pnpm install
-RUN cd web && pnpm install --frozen-lockfile || pnpm install
+# Install all dependencies using pnpm workspace (uses lock file from root)
+RUN pnpm install --frozen-lockfile
 
 # Copy source files
 COPY . .
@@ -33,12 +31,12 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 
 WORKDIR /app
 
-# Copy package files
-COPY package.json pnpm-lock.yaml* ./
+# Copy package files including workspace config
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY server/package.json server/
 
-# Install production dependencies only
-RUN cd server && pnpm install --prod --frozen-lockfile || pnpm install --prod
+# Install production dependencies only using pnpm workspace
+RUN pnpm install --prod --frozen-lockfile --filter server
 
 # Copy built files from builder
 COPY --from=builder /app/server/dist ./server/dist
