@@ -96,6 +96,207 @@ tables:
         description: Shows interest in Korean culture (K-pop, K-beauty, etc.)
 
   # =============================================================================
+  # 1-2. Beauty Influencer Profile Analysis Data
+  # =============================================================================
+  insta_beauty_profiles:
+    dataset: gpt_profile
+    full_name: mmm-lab.gpt_profile.insta_beauty_profiles
+    description: |
+      AI-analyzed Instagram beauty influencer profiles containing detailed
+      beauty-specific interests, skin/hair analysis, makeup preferences,
+      and brand positioning. Use in conjunction with insta_general_profiles.
+    row_count: ~500K
+    key_columns:
+      - name: user_id
+        type: STRING
+        description: Unique Instagram user identifier (PRIMARY KEY, JOIN with insta_general_profiles)
+        required: true
+      - name: analyzed_at
+        type: TIMESTAMP
+        description: When the AI analysis was performed
+        required: true
+
+    beauty_interest_columns:
+      - name: beauty_interest_areas
+        type: ARRAY<STRING>
+        description: Detailed beauty interest areas within the beauty field
+        examples: ["Skincare", "Makeup", "Hair Care", "Nail Art", "Fragrance"]
+      - name: beauty_brands
+        type: ARRAY<STRING>
+        description: Beauty brands the influencer is interested in or uses
+        examples: ["NARS", "MAC", "Innisfree", "Sulwhasoo", "Laneige"]
+      - name: beauty_content_types
+        type: ARRAY<STRING>
+        description: Types of beauty content created
+        examples: ["Tutorial", "Review", "GRWM", "Haul", "Before/After"]
+      - name: beauty_products
+        type: ARRAY<STRING>
+        description: Specific beauty product names used
+        examples: ["NARS Orgasm Blush", "MAC Ruby Woo", "Sulwhasoo First Care Activating Serum"]
+
+    makeup_columns:
+      - name: makeup_interests
+        type: ARRAY<STRING>
+        description: Makeup-related interests
+        examples: ["Natural Makeup", "Bold Lips", "Eye Makeup", "Contouring"]
+      - name: makeup_hashtags
+        type: ARRAY<STRING>
+        description: Makeup-related hashtags used
+        examples: ["#dailymakeup", "#kbeauty", "#makeuptutorial"]
+      - name: makeup_points
+        type: ARRAY<STRING>
+        description: Makeup focus points/techniques
+        examples: ["Puppy Eyes", "Glass Skin", "Gradient Lips"]
+      - name: makeup_items
+        type: ARRAY<STRING>
+        description: Makeup item categories
+        examples: ["Foundation", "Lipstick", "Mascara", "Blush", "Eyeshadow"]
+      - name: makeup_color_preferences
+        type: ARRAY<STRING>
+        description: Color preferences in makeup
+        examples: ["Coral", "Nude Pink", "Berry", "Brown Tones"]
+
+    skincare_columns:
+      - name: skincare_items
+        type: ARRAY<STRING>
+        description: Skincare product categories used
+        examples: ["Toner", "Serum", "Moisturizer", "Sunscreen", "Essence"]
+      - name: skin_concerns
+        type: ARRAY<STRING>
+        description: Skin concerns
+        examples: ["Acne", "Aging", "Dryness", "Sensitivity", "Pigmentation"]
+      - name: skin_concerns_in_detail
+        type: ARRAY<STRING>
+        description: Detailed skin concern descriptions
+        examples: ["Hormonal Acne", "Fine Lines Around Eyes", "Redness on Cheeks"]
+      - name: skin_type
+        type: ARRAY<STRING>
+        description: Skin type classification (inferred actively)
+        values: ["Oily", "Dry", "Combination", "Normal", "Sensitive"]
+      - name: skincare_ingredients
+        type: ARRAY<STRING>
+        description: Skincare ingredients of interest
+        examples: ["Retinol", "Vitamin C", "Hyaluronic Acid", "Niacinamide", "Centella"]
+
+    hair_columns:
+      - name: hair_type
+        type: STRING
+        description: Hair type classification (curl level and thickness)
+        values: ["Straight Fine", "Straight Thick", "Wavy", "Curly", "Coily"]
+      - name: hair_concerns
+        type: ARRAY<STRING>
+        description: Hair-related concerns
+        examples: ["Frizz", "Damage", "Hair Loss", "Dryness", "Oily Scalp"]
+      - name: hair_items
+        type: ARRAY<STRING>
+        description: Hair care product categories
+        examples: ["Shampoo", "Conditioner", "Hair Mask", "Hair Oil", "Heat Protectant"]
+      - name: hair_length_status
+        type: STRING
+        description: Hair length status
+        values: ["Short", "Medium", "Long", "Very Long"]
+      - name: hair_color_history
+        type: ARRAY<STRING>
+        description: Hair color history
+        examples: ["Black", "Brown", "Blonde", "Red", "Ombre", "Balayage"]
+
+    beauty_tools_columns:
+      - name: beauty_tools_categories
+        type: ARRAY<STRING>
+        description: Beauty tool categories used
+        examples: ["Brushes", "Sponges", "LED Devices", "Facial Rollers"]
+      - name: beauty_tools_brands
+        type: ARRAY<STRING>
+        description: Beauty tool brands
+        examples: ["Dyson", "FOREO", "Artis", "Real Techniques"]
+      - name: beauty_tools_usage
+        type: ARRAY<STRING>
+        description: How beauty tools are used
+        examples: ["Daily Use", "Professional", "Tutorial Featured"]
+
+    personal_color_columns:
+      - name: skin_tone
+        type: STRING
+        description: Skin tone classification
+        examples: ["Fair", "Light", "Medium", "Tan", "Deep"]
+      - name: personal_color
+        type: STRING
+        description: Personal color season
+        values: ["Spring", "Summer", "Autumn", "Winter"]
+      - name: personal_color_detailed
+        type: STRING
+        description: Detailed personal color subtype
+        values: ["Light Spring", "Bright Spring", "True Spring", "Light Summer", "True Summer", "Soft Summer", "Soft Autumn", "True Autumn", "Deep Autumn", "Deep Winter", "True Winter", "Bright Winter"]
+
+    preference_columns:
+      - name: aesthetic_keywords
+        type: ARRAY<STRING>
+        description: Aesthetic preference keywords
+        examples: ["Clean Girl", "Y2K", "Coquette", "Minimalist", "Glam"]
+      - name: brand_tier_segments
+        type: STRING
+        description: Brand tier preference
+        values: ["Luxury", "Premium", "Mid-Range", "Budget", "Mixed"]
+      - name: brand_positioning_segments
+        type: STRING
+        description: Brand positioning preference
+        values: ["Natural/Clean", "Science-Driven", "K-Beauty", "Western", "Indie"]
+      - name: purchase_channels
+        type: ARRAY<STRING>
+        description: Preferred purchase channels
+        examples: ["Olive Young", "Sephora", "Online Direct", "Department Store"]
+      - name: k_beauty_products
+        type: ARRAY<STRING>
+        description: K-Beauty product names used
+        examples: ["Sulwhasoo First Care", "Laneige Water Bank", "Innisfree Green Tea"]
+      - name: beauty_review_focus
+        type: ARRAY<STRING>
+        description: Focus areas in beauty reviews
+        examples: ["Efficacy", "Value", "Packaging", "Texture", "Longevity"]
+      - name: beauty_creator_desc
+        type: STRING
+        description: Comprehensive beauty creator analysis summary (300-500 characters)
+
+  # =============================================================================
+  # 1-3. Instagram User External Links
+  # =============================================================================
+  insta_user_links_v3:
+    dataset: sns
+    full_name: mmm-lab.sns.insta_user_links_v3
+    description: |
+      External links associated with Instagram user profiles.
+      Contains categorized URLs by type (contact, SNS, shopping) and channel.
+      Useful for identifying multi-platform presence and affiliate/shopping links.
+    key_columns:
+      - name: user_id
+        type: STRING
+        description: Instagram user ID (JOIN KEY with insta_general_profiles)
+        required: true
+
+    link_columns:
+      - name: type
+        type: STRING
+        description: Category type of the link
+        values: ["contact", "shopping", "sns"]
+      - name: channel
+        type: STRING
+        description: |
+          Platform or channel name.
+          SNS: facebook, instagram, linkedin, snapchat, telegram, tiktok, twitter, whatsapp, youtube
+          Shopping: amazon, coupang, rakuten, sephora, shopee, shopltk
+          Contact: blog, email, kakaotalk
+        values: ["amazon", "blog", "coupang", "email", "facebook", "instagram", "kakaotalk", "linkedin", "rakuten", "sephora", "shopee", "shopltk", "snapchat", "telegram", "tiktok", "twitter", "whatsapp", "youtube"]
+      - name: urls
+        type: ARRAY<STRING>
+        description: List of URLs for this channel (use UNNEST to flatten)
+        examples: ["https://youtube.com/@username", "https://blog.naver.com/username"]
+
+    metadata_columns:
+      - name: updated_at
+        type: STRING
+        description: Last update timestamp (ISO 8601 format)
+
+  # =============================================================================
   # 2. Instagram Media Posts (Photos/Carousels)
   # =============================================================================
   insta_media_mmm_v3:

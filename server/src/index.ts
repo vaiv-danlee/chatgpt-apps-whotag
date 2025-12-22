@@ -332,10 +332,10 @@ server.registerTool(
       limit: z
         .number()
         .min(1)
-        .max(6)
-        .default(6)
+        .max(100)
+        .default(100)
         .optional()
-        .describe("Maximum number of results (max 6)"),
+        .describe("Maximum number of results (max 100)"),
     },
     _meta: {
       "openai/outputTemplate": "ui://widget/carousel.html",
@@ -348,7 +348,7 @@ server.registerTool(
     try {
       console.error(`\n\n========================================`);
       console.error(`🔍 NEW SEARCH REQUEST: "${args.query}"`);
-      console.error(`Limit: ${args.limit || 6}`);
+      console.error(`Limit: ${args.limit || 100}`);
       console.error(`========================================\n`);
 
       // 1. Natural language search
@@ -369,8 +369,8 @@ server.registerTool(
         };
       }
 
-      // 2. Fetch details (apply limit - max 6)
-      const limitValue = Math.min(args.limit || 6, 6);
+      // 2. Fetch details (apply limit - max 100)
+      const limitValue = Math.min(args.limit || 100, 100);
       const userIds = searchResults.item.influencers.slice(0, limitValue);
       const profiles = await getInfluencerBatch(userIds);
 
@@ -1143,10 +1143,10 @@ app.post("/mcp", async (req, res) => {
                     },
                     limit: {
                       type: "number",
-                      description: "Maximum number of results (max 6)",
-                      default: 6,
+                      description: "Maximum number of results (max 100)",
+                      default: 100,
                       minimum: 0,
-                      maximum: 6,
+                      maximum: 100,
                     },
                   },
                   required: ["query"],
@@ -1485,8 +1485,8 @@ app.post("/mcp", async (req, res) => {
           // Call the actual search function
           try {
             const searchResults = await searchInfluencers(toolArgs.query);
-            // Limit to max 6 (PRD requirement)
-            const limitValue = Math.min(toolArgs.limit || 6, 6);
+            // Limit to max 100 for testing
+            const limitValue = Math.min(toolArgs.limit || 100, 100);
             console.error(`Limit value: ${limitValue}`);
             console.error(
               `Total influencers found: ${searchResults.item.influencers.length}`
