@@ -3626,7 +3626,11 @@ app.post("/mcp", async (req, res) => {
         } else {
           // Delegate to MCP server's registered tools
           const registeredToolsForCall = (server as any)._registeredTools || {};
+          console.error(`=== REGISTERED TOOLS DEBUG ===`);
+          console.error(`Available tools: ${Object.keys(registeredToolsForCall).join(', ')}`);
+          console.error(`Looking for: ${toolName}`);
           const registeredTool = registeredToolsForCall[toolName];
+          console.error(`Found tool: ${!!registeredTool}, Has callback: ${!!(registeredTool?.callback)}`);
 
           if (registeredTool && registeredTool.callback) {
             try {
