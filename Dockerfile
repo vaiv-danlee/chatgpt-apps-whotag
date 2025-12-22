@@ -26,22 +26,18 @@ RUN cd server && pnpm run build
 # Production stage
 FROM node:20-slim AS production
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
 WORKDIR /app
 
-# Copy package files including workspace config
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY server/package.json server/
-
-# Install production dependencies only using pnpm workspace
-RUN pnpm install --prod --frozen-lockfile --filter server
+# Copy node_modules from builder (ensures exact same versions)
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/server/node_modules ./server/node_modules
 
 # Copy built files from builder
 COPY --from=builder /app/server/dist ./server/dist
+COPY --from=builder /app/server/package.json ./server/package.json
 COPY --from=builder /app/web/dist ./web/dist
 COPY --from=builder /app/docs ./docs
+COPY --from=builder /app/package.json ./package.json
 
 # Set environment variables
 ENV NODE_ENV=production
