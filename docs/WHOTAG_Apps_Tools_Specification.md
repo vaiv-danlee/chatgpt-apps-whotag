@@ -1,8 +1,10 @@
 # WHOTAG Apps 파생 도구 상세 명세서
 
-**문서 버전**: 1.0  
-**작성일**: 2024-12  
+**문서 버전**: 1.1
+**작성일**: 2024-12 (Updated: 2024-12-22)
 **목적**: WHOTAG Apps에서 활용 가능한 파생 도구의 상세 정의 및 활용 시나리오
+
+> **Note**: 이 문서는 구현 완료 후 업데이트되었습니다. 실제 구현된 도구는 25개입니다.
 
 ---
 
@@ -98,9 +100,11 @@
 
 ### 2.1 인플루언서 검색 도구
 
-#### `search_influencers`
+#### `search_influencers` (whotag.ai API)
 
-인플루언서를 다양한 조건으로 검색하는 핵심 도구
+인플루언서를 자연어 쿼리로 검색하는 도구 (whotag.ai API 기반)
+
+> **Note**: 이 도구는 whotag.ai API를 사용합니다. 구조화된 필터 검색은 `search_influencers_bigquery`를 사용하세요.
 
 **입력 파라미터**
 
@@ -122,26 +126,40 @@
 
 ---
 
-#### `search_beauty_influencers`
+#### `search_influencers_bigquery` (BigQuery 직접 검색)
 
-뷰티 특화 인플루언서 검색 도구
+일반 + 뷰티 통합 인플루언서 검색 도구 (BigQuery 기반)
 
-**입력 파라미터**
+> **Note**: 기존 `search_beauty_influencers`가 이 도구로 통합되었습니다. 뷰티 파라미터가 제공되면 자동으로 뷰티 프로필 데이터가 포함됩니다.
+
+**입력 파라미터 (공통)**
 
 | 파라미터 | 타입 | 설명 | 예시 |
 |----------|------|------|------|
-| `country` | Array[String] | 거주 국가 | ["ID", "TH", "VN"] |
+| `country` | Array[String] | 거주 국가 (ISO 3166-1 Alpha-2) | ["KR", "JP", "VN"] |
+| `gender` | String | 성별 | "Female" |
+| `age_range` | Array[String] | 연령대 | ["20~24", "25~29"] |
+| `interests` | Array[String] | 관심사 | ["Beauty", "Fashion & Style"] |
+| `collaboration_tier` | Array[String] | 협업 등급 | ["Ready - Premium"] |
+| `follower_min` | Integer | 최소 팔로워 | 10000 |
+| `follower_max` | Integer | 최대 팔로워 | 100000 |
+| `k_interest` | Boolean | K-컬처 관심 여부 | true |
+| `limit` | Integer | 결과 수 제한 | 50 |
+
+**입력 파라미터 (뷰티 특화)** - 제공 시 뷰티 프로필 JOIN
+
+| 파라미터 | 타입 | 설명 | 예시 |
+|----------|------|------|------|
 | `beauty_interest_areas` | Array[String] | 뷰티 관심 분야 | ["Skincare", "K Beauty"] |
 | `beauty_content_types` | Array[String] | 콘텐츠 유형 | ["Product Review", "Skincare Routine"] |
 | `skin_type` | Array[String] | 피부 타입 | ["Oily", "Combination"] |
 | `skin_concerns` | Array[String] | 피부 고민 | ["Acne", "Pore Care"] |
 | `personal_color` | String | 퍼스널 컬러 | "Warm" |
 | `brand_tier_segments` | String | 브랜드 가격대 선호 | "Premium" |
-| `collaboration_tier` | Array[String] | 협업 등급 | ["Ready - Premium"] |
 
 **출력**
 
-뷰티 인플루언서 목록 (프로필 + 뷰티 특화 정보)
+인플루언서 목록 (프로필 정보 + 뷰티 파라미터 제공 시 뷰티 특화 정보 포함)
 
 ---
 
@@ -165,9 +183,9 @@
 
 ### 2.2 트렌드 분석 도구
 
-#### `analyze_hashtag_trends`
+#### `analyze_hashtag_trends_bigquery`
 
-특정 조건의 인플루언서 그룹에서 인기 해시태그 분석
+특정 조건의 인플루언서 그룹에서 인기 해시태그 분석 (BigQuery 직접 생성 방식)
 
 **입력 파라미터**
 
@@ -238,16 +256,18 @@
 | `country` | Array[String] | 국가 필터 | ["KR"] |
 | `period_days` | Integer | 분석 기간 | 90 |
 | `category` | String | 카테고리 | "skincare" / "makeup" / "haircare" |
+| `limit` | Integer | 결과 수 | 30 |
 
 **출력**
 
 | 필드 | 설명 |
 |------|------|
-| `ingredient` | 성분명 (Vitamin C, Retinol 등) |
-| `mention_count` | 언급 횟수 |
+| `ingredient` | 성분명 (Vitamin C, Retinol 등) 또는 아이템명 |
+| `current_count` | 현재 기간 언급 인플루언서 수 |
+| `previous_count` | 이전 기간 언급 인플루언서 수 |
 | `growth_rate` | 성장률 |
 | `related_products` | 관련 제품 |
-| `related_concerns` | 관련 피부 고민 |
+| `related_concerns` | 관련 피부/뷰티 고민 |
 
 ---
 
@@ -678,7 +698,7 @@ K-컬처 관심 해외 인플루언서 목록 (k_interest_reason 포함)
 **Step 3: 해시태그 트렌드 분석**
 
 ```
-도구: analyze_hashtag_trends
+도구: analyze_hashtag_trends_bigquery
 파라미터:
   - country: ["ID"]
   - interests: ["Beauty", "Skincare"]
@@ -715,7 +735,7 @@ K-컬처 관심 해외 인플루언서 목록 (k_interest_reason 포함)
 **Step 5: 타겟 인플루언서 검색**
 
 ```
-도구: search_beauty_influencers
+도구: search_influencers_bigquery
 파라미터:
   - country: ["ID"]
   - beauty_interest_areas: ["Skincare", "K Beauty"]
@@ -907,7 +927,7 @@ K-컬처 관심 해외 인플루언서 목록 (k_interest_reason 포함)
 **Step 5: 트렌드 선도 인플루언서 세그먼트**
 
 ```
-도구: search_beauty_influencers
+도구: search_influencers_bigquery
 파라미터:
   - country: ["KR", "JP"]
   - beauty_interest_areas: ["Clean Beauty", "Skincare"]
@@ -938,7 +958,7 @@ K-컬처 관심 해외 인플루언서 목록 (k_interest_reason 포함)
 **Step 1: 타겟 페르소나 기반 검색**
 
 ```
-도구: search_beauty_influencers
+도구: search_influencers_bigquery
 파라미터:
   - country: ["KR"]
   - beauty_interest_areas: ["Skincare", "Clean Beauty"]
@@ -958,7 +978,7 @@ K-컬처 관심 해외 인플루언서 목록 (k_interest_reason 포함)
 **Step 2: 콘텐츠 스타일 필터링**
 
 ```
-도구: search_beauty_influencers (추가 필터)
+도구: search_influencers_bigquery (추가 필터)
 파라미터:
   - beauty_content_types: ["Product Review", "Skincare Routine", "Before After"]
   - aesthetic_keywords: ["Minimalist", "Clean Girl", "Natural"]
@@ -1036,7 +1056,7 @@ K-컬처 관심 해외 인플루언서 목록 (k_interest_reason 포함)
 **Step 2: 국가별 인플루언서 검색**
 
 ```
-도구: search_beauty_influencers
+도구: search_influencers_bigquery
 파라미터 (JP):
   - country: ["JP"]
   - makeup_items: ["Lip Tint", "Lipstick"]
@@ -1229,9 +1249,9 @@ K-컬처 관심 해외 인플루언서 목록 (k_interest_reason 포함)
 
 ```
 1. analyze_market_demographics → 시장 규모/특성 파악
-2. analyze_hashtag_trends → 현지 트렌드 파악
+2. analyze_hashtag_trends_bigquery → 현지 트렌드 파악
 3. find_k_culture_influencers → K-컬처 관심층 발굴
-4. search_beauty_influencers → 타겟 인플루언서 검색
+4. search_influencers_bigquery → 타겟 인플루언서 검색
 5. compare_regional_hashtags → 현지 vs 본국 차이 분석
 ```
 
@@ -1256,7 +1276,7 @@ K-컬처 관심 해외 인플루언서 목록 (k_interest_reason 포함)
 ### 패턴 D: 인플루언서 캐스팅
 
 ```
-1. search_beauty_influencers → 조건 기반 검색
+1. search_influencers_bigquery → 조건 기반 검색
 2. search_by_brand_collaboration → 유사 브랜드 협업 이력 확인
 3. analyze_engagement_metrics → 성과 지표 확인
 4. 버킷에 담기 → GPT에게 최종 선별 요청
@@ -1286,15 +1306,54 @@ K-컬처 관심 해외 인플루언서 목록 (k_interest_reason 포함)
 
 ## 5. 요약
 
-| 도구 카테고리 | 도구 수 | 주요 용도 |
-|--------------|--------|----------|
-| 인플루언서 검색 | 3개 | 조건 기반 인플루언서 발굴 |
-| 트렌드 분석 | 4개 | 해시태그/성분 트렌드 파악 |
-| 브랜드 분석 | 4개 | 경쟁사/협업 현황 분석 |
-| 시장 인사이트 | 4개 | 시장 특성/세그먼트 분석 |
-| 콘텐츠 분석 | 5개 | 콘텐츠 성과/패턴 분석 |
-| 멀티 플랫폼/링크 | 5개 | 외부 채널/제휴 링크 분석 |
-| **합계** | **25개** | |
+| 도구 카테고리 | 도구 수 | 구현 상태 | 주요 용도 |
+|--------------|--------|----------|----------|
+| 인플루언서 검색 | 3개 | ✅ 완료 | 조건 기반 인플루언서 발굴 |
+| 트렌드 분석 | 4개 | ✅ 완료 | 해시태그/성분 트렌드 파악 |
+| 브랜드 분석 | 4개 | ✅ 완료 | 경쟁사/협업 현황 분석 |
+| 시장 인사이트 | 4개 | ✅ 완료 | 시장 특성/세그먼트 분석 |
+| 콘텐츠 분석 | 5개 | ✅ 완료 | 콘텐츠 성과/패턴 분석 |
+| 멀티 플랫폼/링크 | 5개 | ✅ 완료 | 외부 채널/제휴 링크 분석 |
+| **합계** | **25개** | | |
+
+### 구현된 도구 목록 (25개)
+
+**인플루언서 검색 (3개)**
+- `search_influencers` - whotag.ai API 기반 자연어 검색
+- `search_influencers_bigquery` - BigQuery 기반 구조화 검색 (일반+뷰티 통합)
+- `search_by_brand_collaboration` - 브랜드 협업 이력 검색
+
+**트렌드 분석 (4개)**
+- `analyze_hashtag_trends_bigquery` - 해시태그 트렌드 분석
+- `detect_emerging_hashtags` - 급성장 해시태그 탐지
+- `compare_regional_hashtags` - 지역별 해시태그 비교
+- `analyze_beauty_ingredient_trends` - 뷰티 성분/아이템 트렌드 분석
+
+**브랜드 분석 (4개)**
+- `analyze_brand_mentions` - 브랜드 언급량 분석
+- `find_brand_collaborators` - 브랜드 협업 인플루언서 탐색
+- `analyze_sponsored_content_performance` - 스폰서 콘텐츠 성과 분석
+- `compare_competitor_brands` - 경쟁 브랜드 비교
+
+**시장 인사이트 (4개)**
+- `analyze_market_demographics` - 시장별 인구통계 분석
+- `find_k_culture_influencers` - K-컬처 관심 해외 인플루언서
+- `analyze_lifestage_segments` - 생애주기별 세그먼트 분석
+- `analyze_beauty_persona_segments` - 뷰티 페르소나 분석
+
+**콘텐츠 분석 (5개)**
+- `analyze_engagement_metrics` - 참여도 통계 분석
+- `compare_content_formats` - 피드 vs 릴스 성과 비교
+- `find_optimal_posting_time` - 최적 포스팅 시간대 분석
+- `analyze_viral_content_patterns` - 바이럴 콘텐츠 패턴 분석
+- `analyze_beauty_content_performance` - 뷰티 콘텐츠 유형별 성과
+
+**멀티 플랫폼/링크 (5개)**
+- `search_multiplatform_influencers` - 멀티 플랫폼 인플루언서 검색
+- `find_influencers_with_shopping_links` - 쇼핑 링크 보유 인플루언서
+- `find_contactable_influencers` - 연락 가능 인플루언서 검색
+- `analyze_platform_distribution` - 플랫폼 분포 분석
+- `compare_platform_presence` - 브랜드별 플랫폼 현황 비교
 
 ### 데이터 테이블 요약
 
