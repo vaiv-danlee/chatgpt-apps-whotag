@@ -205,8 +205,8 @@ PACKAGE_JSON_TEMPLATE = '''{
     "dev": "nodemon server.js"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0",
-    "zod": "^3.22.0"
+    "@modelcontextprotocol/sdk": "^1.25.0",
+    "zod": "^3.25.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.0"

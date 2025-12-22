@@ -20,6 +20,21 @@ Building a ChatGPT app involves these steps:
 
 ## MCP Server Setup
 
+### Dependencies
+
+```json
+{
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.25.0",
+    "express": "^4.18.0",
+    "cors": "^2.8.5",
+    "zod": "^3.25.0"
+  }
+}
+```
+
+> **Note:** MCP SDK 1.22+ uses `handler` property for tool callbacks (1.21 and earlier used `callback`).
+
 ### Required Endpoints (Critical)
 
 ChatGPT requires **4 endpoints** for full compatibility:

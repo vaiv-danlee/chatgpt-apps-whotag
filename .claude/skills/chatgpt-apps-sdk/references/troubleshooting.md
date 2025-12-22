@@ -608,6 +608,64 @@ app.use(cors({
 }));
 ```
 
+### MCP SDK Version Mismatch
+
+**Symptoms:**
+- Tool works locally but fails on production with "Unknown tool" error
+- `tools/call` receives request but doesn't execute handler
+- Works with Claude (SSE) but not with ChatGPT (POST /mcp)
+
+**Cause:** MCP SDK internal API changed between versions:
+- **1.21 and earlier**: Uses `callback` property for tool handlers
+- **1.22 and later**: Uses `handler` property for tool handlers
+
+**Why it happens:**
+- Dockerfile uses `pnpm install --frozen-lockfile || pnpm install` (fallback installs latest)
+- Lock file missing in subdirectory causes fallback to trigger
+- Local has cached older version, production gets latest
+
+**Solution:**
+
+1. **Pin SDK version in package.json:**
+```json
+{
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.25.0"
+  }
+}
+```
+
+2. **Use pnpm workspace with single lock file:**
+```dockerfile
+# Copy workspace config
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY server/package.json server/
+
+# Install with frozen lockfile (no fallback!)
+RUN pnpm install --frozen-lockfile
+```
+
+3. **When delegating tools in POST /mcp, use `handler`:**
+```typescript
+// MCP SDK 1.22+ uses 'handler' instead of 'callback'
+const registeredTool = registeredTools[toolName];
+if (registeredTool?.handler) {
+  const result = await registeredTool.handler(args, {});
+  // ...
+}
+```
+
+**Verification:**
+```bash
+# Check installed version
+cat node_modules/@modelcontextprotocol/sdk/package.json | grep '"version"'
+
+# Check tool structure (add debug log)
+console.log('Tool keys:', Object.keys(registeredTool).join(', '));
+// 1.21: title, description, inputSchema, callback, enabled, ...
+// 1.22+: title, description, inputSchema, handler, enabled, ...
+```
+
 ## Quick Reference Tables
 
 ### Common Fixes
@@ -622,6 +680,8 @@ app.use(cors({
 | Infinite height | Set `maxHeight: "800px"` and `overflowY: "auto"` |
 | Build missing | Run `cd web && npm run build` |
 | GPT can't analyze data | Move data from `content` to `structuredContent` |
+| Tool works locally but not on production | Check MCP SDK version - use `handler` property (1.22+) instead of `callback` (1.21-) |
+| Unknown tool error on `tools/call` | Use `pnpm-lock.yaml` with `--frozen-lockfile` to ensure consistent SDK versions |
 
 ### Pre-Deployment Checklist
 

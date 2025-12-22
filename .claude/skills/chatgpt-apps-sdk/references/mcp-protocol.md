@@ -20,6 +20,12 @@ Model Context Protocol (MCP) specification details for Apps SDK.
 
 MCP is an open specification connecting LLM clients to external tools and resources. Apps SDK uses MCP to keep server, model, and UI in sync.
 
+### SDK Version
+
+Recommended: `@modelcontextprotocol/sdk` version **1.25.0** or later.
+
+> **Breaking Change:** SDK 1.22+ uses `handler` property for tool callbacks (1.21 and earlier used `callback`). See troubleshooting guide for details.
+
 ### Transport Options
 
 **Streamable HTTP (Recommended)**
