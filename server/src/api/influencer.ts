@@ -66,6 +66,34 @@ export async function getRepresentativeImages(userId: string): Promise<ImageResp
   return data.item || [];
 }
 
+export async function getProfileImage(userId: string): Promise<{ user_id: string; image_url: string } | null> {
+  const token = await getAccessToken();
+
+  const response = await fetch(
+    `https://dev.whotag.ai/api/v1/influencers/images/${userId}/profile/url`,
+    {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    console.error(`Failed to fetch profile image for ${userId}, status: ${response.status}`);
+    return null;
+  }
+
+  const data = await response.json();
+  if (data.item && data.item.image_url) {
+    return {
+      user_id: userId,
+      image_url: data.item.image_url
+    };
+  }
+
+  return null;
+}
+
 export async function getGridImages(userId: string): Promise<ImageResponse['item']> {
   const token = await getAccessToken();
 

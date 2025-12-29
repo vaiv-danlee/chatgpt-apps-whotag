@@ -2,9 +2,12 @@
 
 Model Context Protocol (MCP) specification details for Apps SDK.
 
+**Protocol Version:** 2025-11-25 (Latest)
+
 ## Table of Contents
 
 - [Protocol Overview](#protocol-overview)
+- [Protocol Version History](#protocol-version-history)
 - [Tool Specification](#tool-specification)
 - [Resource Specification](#resource-specification)
 - [Lifecycle](#lifecycle)
@@ -26,6 +29,24 @@ Recommended: `@modelcontextprotocol/sdk` version **1.25.0** or later.
 
 > **Breaking Change:** SDK 1.22+ uses `handler` property for tool callbacks (1.21 and earlier used `callback`). See troubleshooting guide for details.
 
+## Protocol Version History
+
+| Version | Release Date | Key Changes |
+|---------|--------------|-------------|
+| 2025-11-25 | Nov 2025 | Tool calling in sampling, JSON Schema 2020-12 default, schema decoupling |
+| 2025-06-18 | Jun 2025 | **`structuredContent` introduced**, `outputSchema` for tools, OAuth security enhancements |
+| 2025-03-26 | Mar 2025 | OAuth 2.1, Streamable HTTP transport, Audio content, Tool annotations |
+| 2024-11-05 | Nov 2024 | Initial stable specification |
+
+### structuredContent Compatibility
+
+| Protocol Version | structuredContent Support |
+|-----------------|---------------------------|
+| 2024-11-05 | ❌ Not supported |
+| 2025-03-26 | ❌ Not supported |
+| 2025-06-18+ | ✅ Supported (standard) |
+
+
 ### Transport Options
 
 **Streamable HTTP (Recommended)**
@@ -42,42 +63,116 @@ Recommended: `@modelcontextprotocol/sdk` version **1.25.0** or later.
 ### Tool Definition Structure
 
 ```typescript
-{
-  name: string;              // Machine name
-  title: string;             // Human-readable name
+interface Tool {
+  name: string;              // Machine name (unique identifier)
+  title?: string;            // Human-readable name
   description: string;       // Action-oriented description
-  inputSchema: JSONSchema;   // Input parameters
-  outputSchema?: JSONSchema; // Optional output schema
+  inputSchema: JSONSchema;   // Input parameters (JSON Schema 2020-12)
+
+  // Output schema for structured results (2025-06-18+)
+  outputSchema?: JSONSchema;
+
+  // Tool behavior hints (2025-03-26+)
   annotations?: {
-    readOnlyHint?: boolean;
+    readOnlyHint?: boolean;     // Tool only reads data
+    destructiveHint?: boolean;  // Tool may modify/delete data
+    idempotentHint?: boolean;   // Safe to retry
+    openWorldHint?: boolean;    // May interact with external world
   };
+
+  // Tool icons (2025-11-25+)
+  icons?: Array<{
+    src: string;           // Icon URL
+    mimeType: string;      // e.g., "image/png"
+    sizes?: string[];      // e.g., ["48x48", "96x96"]
+  }>;
+
+  // Security schemes
   securitySchemes?: Array<{
     type: "noauth" | "oauth2";
     scopes?: string[];
   }>;
+
+  // OpenAI/ChatGPT-specific metadata
   _meta?: {
-    "openai/outputTemplate"?: string;
-    "openai/widgetAccessible"?: boolean;
-    "openai/toolInvocation/invoking"?: string;
-    "openai/toolInvocation/invoked"?: string;
+    "openai/outputTemplate"?: string;           // Widget ID for rendering
+    "openai/widgetAccessible"?: boolean;        // Widget can access tool output
+    "openai/toolInvocation/invoking"?: string;  // Message while executing
+    "openai/toolInvocation/invoked"?: string;   // Message after completion
   };
 }
 ```
 
-### Tool Result Structure
+### Tool Result Structure (CallToolResult)
 
 ```typescript
-{
-  content?: Array<{
-    type: "text" | "image" | "resource";
-    text?: string;
-    data?: string;
-    mimeType?: string;
+interface CallToolResult {
+  // Required: Unstructured content for display/backwards compatibility
+  content: Array<{
+    type: "text" | "image" | "audio" | "resource";
+    text?: string;           // For type: "text"
+    data?: string;           // Base64 for image/audio
+    mimeType?: string;       // MIME type for binary content
+    resource?: {             // For type: "resource"
+      uri: string;
+      mimeType: string;
+      text?: string;
+    };
+    annotations?: {          // Optional content annotations
+      audience?: ("user" | "assistant")[];
+      priority?: number;
+      lastModified?: string; // ISO 8601 timestamp
+    };
   }>;
-  structuredContent?: Record<string, any>;
-  _meta?: Record<string, any>;
+
+  // Optional: Structured JSON data (2025-06-18+)
+  structuredContent?: Record<string, unknown>;
+
+  // Optional: Metadata (used by ChatGPT for widget data)
+  _meta?: Record<string, unknown>;
+
+  // Optional: Error flag
   isError?: boolean;
+
+  // Index signature for additional properties
+  [key: string]: unknown;
 }
+```
+
+### structuredContent Usage
+
+**Standard MCP (2025-06-18+):**
+```typescript
+// Both content and structuredContent for compatibility
+return {
+  content: [{
+    type: "text",
+    text: JSON.stringify({ temperature: 22.5, conditions: "Sunny" })
+  }],
+  structuredContent: {
+    temperature: 22.5,
+    conditions: "Sunny",
+    humidity: 65
+  }
+};
+```
+
+**With outputSchema validation:**
+```typescript
+// Define outputSchema in tool definition
+{
+  name: "get_weather",
+  outputSchema: {
+    type: "object",
+    properties: {
+      temperature: { type: "number" },
+      conditions: { type: "string" }
+    },
+    required: ["temperature", "conditions"]
+  }
+}
+// Server MUST return structuredContent matching schema
+// Client SHOULD validate against schema
 ```
 
 ### Error Handling
@@ -142,11 +237,17 @@ Return errors with `_meta["mcp/www_authenticate"]`:
   "id": 1,
   "method": "initialize",
   "params": {
-    "protocolVersion": "2024-11-05",
+    "protocolVersion": "2025-11-25",
     "capabilities": {
       "roots": { "listChanged": true },
       "sampling": {},
-      "elicitation": {}
+      "elicitation": { "form": {}, "url": {} },
+      "tasks": {
+        "requests": {
+          "elicitation": { "create": {} },
+          "sampling": { "createMessage": {} }
+        }
+      }
     },
     "_meta": {
       "openai/locale": "en-US"
@@ -165,9 +266,12 @@ Return errors with `_meta["mcp/www_authenticate"]`:
   "jsonrpc": "2.0",
   "id": 1,
   "result": {
-    "protocolVersion": "2024-11-05",
+    "protocolVersion": "2025-11-25",
     "capabilities": {
-      "tools": { "listChanged": true }
+      "tools": { "listChanged": true },
+      "resources": { "subscribe": true, "listChanged": true },
+      "prompts": { "listChanged": true },
+      "logging": {}
     },
     "serverInfo": {
       "name": "my-server",
@@ -179,6 +283,13 @@ Return errors with `_meta["mcp/www_authenticate"]`:
   }
 }
 ```
+
+### Version Negotiation
+
+- Client sends the latest protocol version it supports
+- Server responds with the same version if supported, or proposes an alternative
+- If versions don't match, client SHOULD disconnect
+- For HTTP transport, client must include `MCP-Protocol-Version` header on all requests
 
 ### List Tools
 

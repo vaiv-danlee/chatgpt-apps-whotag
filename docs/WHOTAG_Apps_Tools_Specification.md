@@ -122,7 +122,13 @@
 
 **출력**
 
-인플루언서 목록 (user_id, username, follower_count, collaboration_tier, interests 등)
+| 필드 | 설명 | 예시 |
+|------|------|------|
+| `user_id` | 인플루언서 고유 ID | `"12345678"` |
+| `username` | 인스타그램 사용자명 | `"beauty_creator_kr"` |
+| `follower_count` | 팔로워 수 | `85000` |
+| `collaboration_tier` | 협업 등급 | `"Ready - Premium"` |
+| `interests` | 관심사 목록 | `["Beauty", "Fashion & Style"]` |
 
 ---
 
@@ -159,7 +165,16 @@
 
 **출력**
 
-인플루언서 목록 (프로필 정보 + 뷰티 파라미터 제공 시 뷰티 특화 정보 포함)
+| 필드 | 설명 | 예시 |
+|------|------|------|
+| `user_id` | 인플루언서 고유 ID | `"12345678"` |
+| `username` | 인스타그램 사용자명 | `"skincare_lover"` |
+| `follower_count` | 팔로워 수 | `120000` |
+| `collaboration_tier` | 협업 등급 | `"Ready - Professional"` |
+| `interests` | 관심사 목록 | `["Beauty", "Skincare"]` |
+| `skin_type` | 피부 타입 (뷰티 파라미터 시) | `"Combination"` |
+| `skin_concerns` | 피부 고민 (뷰티 파라미터 시) | `["Acne", "Pore Care"]` |
+| `beauty_content_types` | 뷰티 콘텐츠 유형 (뷰티 파라미터 시) | `["Product Review", "GRWM"]` |
 
 ---
 
@@ -177,7 +192,14 @@
 
 **출력**
 
-해당 브랜드 협업 이력 인플루언서 목록
+| 필드 | 설명 | 예시 |
+|------|------|------|
+| `user_id` | 인플루언서 고유 ID | `"12345678"` |
+| `username` | 인스타그램 사용자명 | `"innisfree_lover"` |
+| `follower_count` | 팔로워 수 | `95000` |
+| `collaboration_count` | 해당 브랜드 협업 횟수 | `5` |
+| `last_collaboration_date` | 마지막 협업 날짜 | `"2024-11-15"` |
+| `collaboration_tier` | 협업 등급 | `"Ready - Premium"` |
 
 ---
 
@@ -199,12 +221,12 @@
 
 **출력**
 
-| 필드 | 설명 |
-|------|------|
-| `hashtag` | 해시태그명 |
-| `usage_count` | 사용 횟수 |
-| `unique_users` | 사용자 수 |
-| `growth_rate` | 전기 대비 성장률 |
+| 필드 | 설명 | 예시 |
+|------|------|------|
+| `hashtag` | 해시태그명 | `"#skincareroutine"` |
+| `usage_count` | 사용 횟수 | `12340` |
+| `unique_users` | 사용자 수 | `3450` |
+| `growth_rate` | 전기 대비 성장률 | `1.45` (145%) |
 
 ---
 
@@ -223,7 +245,13 @@
 
 **출력**
 
-급성장 해시태그 목록 (해시태그, 이전 사용량, 현재 사용량, 성장률)
+| 필드 | 설명 | 예시 |
+|------|------|------|
+| `hashtag` | 해시태그명 | `"#cleanbeauty"` |
+| `previous_count` | 이전 기간 사용량 | `2500` |
+| `current_count` | 현재 기간 사용량 | `8500` |
+| `growth_rate` | 성장률 | `3.4` (340%) |
+| `top_countries` | 주요 사용 국가 | `["US", "KR"]` |
 
 ---
 
@@ -241,7 +269,13 @@
 
 **출력**
 
-국가별 TOP 해시태그 및 공통/차별화 해시태그
+| 필드 | 설명 | 예시 |
+|------|------|------|
+| `country` | 국가 코드 | `"KR"` |
+| `top_hashtags` | TOP 해시태그 목록 | `["#glasskin", "#skincare"]` |
+| `common_hashtags` | 국가간 공통 해시태그 | `["#beauty", "#makeup"]` |
+| `unique_hashtags` | 해당 국가 특화 해시태그 | `["#퍼스널컬러", "#kbeauty"]` |
+| `usage_count` | 해시태그별 사용 횟수 | `{"#glasskin": 5600}` |
 
 ---
 
@@ -260,14 +294,14 @@
 
 **출력**
 
-| 필드 | 설명 |
-|------|------|
-| `ingredient` | 성분명 (Vitamin C, Retinol 등) 또는 아이템명 |
-| `current_count` | 현재 기간 언급 인플루언서 수 |
-| `previous_count` | 이전 기간 언급 인플루언서 수 |
-| `growth_rate` | 성장률 |
-| `related_products` | 관련 제품 |
-| `related_concerns` | 관련 피부/뷰티 고민 |
+| 필드 | 설명 | 예시 |
+|------|------|------|
+| `ingredient` | 성분명 (Vitamin C, Retinol 등) 또는 아이템명 | `"Niacinamide"` |
+| `current_count` | 현재 기간 언급 인플루언서 수 | `1250` |
+| `previous_count` | 이전 기간 언급 인플루언서 수 | `450` |
+| `growth_rate` | 성장률 | `1.78` (178%) |
+| `related_products` | 관련 제품 | `["Serum", "Toner"]` |
+| `related_concerns` | 관련 피부/뷰티 고민 | `["Brightening", "Pore Care"]` |
 
 ---
 
@@ -287,7 +321,14 @@
 
 **출력**
 
-브랜드별 언급량, 태그 수, 스폰서 콘텐츠 수, 참여도 평균
+| 필드 | 설명 | 예시 |
+|------|------|------|
+| `brand` | 브랜드명 | `"Estee Lauder"` |
+| `mention_count` | 언급 횟수 | `4520` |
+| `hashtag_count` | 관련 해시태그 수 | `15` |
+| `sponsored_count` | 스폰서 콘텐츠 수 | `230` |
+| `avg_engagement_rate` | 평균 참여율 | `3.8` |
+| `top_influencers` | 주요 언급 인플루언서 | `["user1", "user2"]` |
 
 ---
 
@@ -306,7 +347,14 @@
 
 **출력**
 
-브랜드 협업 인플루언서 목록 (협업 횟수, 참여율 등 포함)
+| 필드 | 설명 | 예시 |
+|------|------|------|
+| `user_id` | 인플루언서 고유 ID | `"12345678"` |
+| `username` | 인스타그램 사용자명 | `"chanel_beauty"` |
+| `follower_count` | 팔로워 수 | `150000` |
+| `collaboration_count` | 해당 브랜드 협업 횟수 | `8` |
+| `avg_engagement_rate` | 평균 참여율 | `4.5` |
+| `collaboration_tier` | 협업 등급 | `"Ready - Premium"` |
 
 ---
 
@@ -325,7 +373,14 @@
 
 **출력**
 
-스폰서 콘텐츠 평균 참여율, 일반 콘텐츠 대비 성과, 최고 성과 콘텐츠
+| 필드 | 설명 | 예시 |
+|------|------|------|
+| `sponsored_avg_engagement` | 스폰서 콘텐츠 평균 참여율 | `4.2` |
+| `organic_avg_engagement` | 일반 콘텐츠 평균 참여율 | `3.1` |
+| `performance_premium` | 스폰서 콘텐츠 성과 프리미엄 | `+35%` |
+| `top_content_type` | 최고 성과 콘텐츠 유형 | `"GRWM"` |
+| `top_content_engagement` | 최고 성과 콘텐츠 참여율 | `5.8` |
+| `total_sponsored_posts` | 총 스폰서 콘텐츠 수 | `156` |
 
 ---
 
@@ -343,14 +398,14 @@
 
 **출력**
 
-| 필드 | 설명 |
-|------|------|
-| `brand` | 브랜드명 |
-| `collaborator_count` | 협업 인플루언서 수 |
-| `total_sponsored_posts` | 스폰서 콘텐츠 수 |
-| `avg_engagement_rate` | 평균 참여율 |
-| `top_markets` | 주요 시장 |
-| `influencer_tier_distribution` | 인플루언서 등급 분포 |
+| 필드 | 설명 | 예시 |
+|------|------|------|
+| `brand` | 브랜드명 | `"Fwee"` |
+| `collaborator_count` | 협업 인플루언서 수 | `87` |
+| `total_sponsored_posts` | 스폰서 콘텐츠 수 | `156` |
+| `avg_engagement_rate` | 평균 참여율 | `4.2` |
+| `top_markets` | 주요 시장 | `["KR", "JP"]` |
+| `influencer_tier_distribution` | 인플루언서 등급 분포 | `{"Premium": 19, "Professional": 48}` |
 
 ---
 
@@ -370,7 +425,14 @@
 
 **출력**
 
-국가별 연령대/성별/직업 분포, 협업 준비도 분포
+| 필드 | 설명 | 예시 |
+|------|------|------|
+| `country` | 국가 코드 | `"ID"` |
+| `total_count` | 총 인플루언서 수 | `15420` |
+| `gender_distribution` | 성별 분포 | `{"Female": 89, "Male": 11}` |
+| `age_distribution` | 연령대 분포 | `{"20~24": 35, "25~29": 28}` |
+| `occupation_distribution` | 직업 분포 | `{"Content Creator": 45}` |
+| `tier_distribution` | 협업 등급 분포 | `{"Ready - Premium": 8}` |
 
 ---
 
@@ -389,7 +451,14 @@ K-컬처 관심 해외 인플루언서 발굴
 
 **출력**
 
-K-컬처 관심 해외 인플루언서 목록 (k_interest_reason 포함)
+| 필드 | 설명 | 예시 |
+|------|------|------|
+| `user_id` | 인플루언서 고유 ID | `"12345678"` |
+| `username` | 인스타그램 사용자명 | `"kbeauty_fan_us"` |
+| `follower_count` | 팔로워 수 | `75000` |
+| `country` | 거주 국가 | `"US"` |
+| `k_interest_reason` | K-컬처 관심 이유 | `"K-Beauty Brand Mentions"` |
+| `collaboration_tier` | 협업 등급 | `"Ready - Professional"` |
 
 ---
 
@@ -407,7 +476,14 @@ K-컬처 관심 해외 인플루언서 목록 (k_interest_reason 포함)
 
 **출력**
 
-생애주기별 인플루언서 분포, 관심사 특성, 협업 현황
+| 필드 | 설명 | 예시 |
+|------|------|------|
+| `lifestage` | 생애주기 | `"Married With Infant/Toddler"` |
+| `count` | 해당 생애주기 인플루언서 수 | `2450` |
+| `percentage` | 비율 | `15.8` |
+| `top_interests` | 주요 관심사 | `["Child Care", "Beauty"]` |
+| `avg_engagement_rate` | 평균 참여율 | `4.2` |
+| `tier_distribution` | 협업 등급 분포 | `{"Ready - Premium": 12}` |
 
 ---
 
@@ -427,7 +503,14 @@ K-컬처 관심 해외 인플루언서 목록 (k_interest_reason 포함)
 
 **출력**
 
-해당 조건의 뷰티 인플루언서 세그먼트 분석
+| 필드 | 설명 | 예시 |
+|------|------|------|
+| `segment_name` | 세그먼트명 | `"Oily Skin + Acne Concern"` |
+| `count` | 해당 세그먼트 인플루언서 수 | `1850` |
+| `skin_type_distribution` | 피부 타입 분포 | `{"Oily": 65, "Combination": 35}` |
+| `top_concerns` | 주요 피부 고민 | `["Acne", "Pore Care"]` |
+| `preferred_brands` | 선호 브랜드 | `["COSRX", "Some By Mi"]` |
+| `avg_engagement_rate` | 평균 참여율 | `4.8` |
 
 ---
 
@@ -449,7 +532,14 @@ K-컬처 관심 해외 인플루언서 목록 (k_interest_reason 포함)
 
 **출력**
 
-평균/중앙값 좋아요, 댓글, 참여율, 상위 10% 기준값
+| 필드 | 설명 | 예시 |
+|------|------|------|
+| `avg_likes` | 평균 좋아요 수 | `3500` |
+| `median_likes` | 중앙값 좋아요 수 | `2800` |
+| `avg_comments` | 평균 댓글 수 | `120` |
+| `median_comments` | 중앙값 댓글 수 | `85` |
+| `avg_engagement_rate` | 평균 참여율 | `4.2` |
+| `top_10_threshold` | 상위 10% 기준값 | `{"likes": 8500, "engagement": 7.5}` |
 
 ---
 
@@ -467,7 +557,14 @@ K-컬처 관심 해외 인플루언서 목록 (k_interest_reason 포함)
 
 **출력**
 
-피드/릴스별 평균 참여율, 조회수, 최적 콘텐츠 길이
+| 필드 | 설명 | 예시 |
+|------|------|------|
+| `content_type` | 콘텐츠 유형 | `"reels"` |
+| `avg_engagement_rate` | 평균 참여율 | `5.2` |
+| `avg_views` | 평균 조회수 (릴스) | `45000` |
+| `avg_likes` | 평균 좋아요 수 | `3200` |
+| `optimal_length` | 최적 콘텐츠 길이 | `"15-30초"` |
+| `comparison` | 피드 대비 성과 | `"+35% engagement"` |
 
 ---
 
@@ -485,7 +582,14 @@ K-컬처 관심 해외 인플루언서 목록 (k_interest_reason 포함)
 
 **출력**
 
-요일별/시간대별 평균 참여율, 최적 포스팅 시점 추천
+| 필드 | 설명 | 예시 |
+|------|------|------|
+| `day_of_week` | 요일 | `"Wednesday"` |
+| `hour` | 시간대 | `20` (20:00) |
+| `avg_engagement_rate` | 해당 시간대 평균 참여율 | `5.8` |
+| `post_count` | 해당 시간대 포스팅 수 | `1250` |
+| `optimal_time` | 최적 포스팅 시점 | `"Wed 20:00-22:00"` |
+| `timezone` | 시간대 기준 | `"KST"` |
 
 ---
 
@@ -504,7 +608,14 @@ K-컬처 관심 해외 인플루언서 목록 (k_interest_reason 포함)
 
 **출력**
 
-바이럴 콘텐츠 공통 특성 (해시태그, 콘텐츠 유형, 길이, 포맷)
+| 필드 | 설명 | 예시 |
+|------|------|------|
+| `viral_count` | 바이럴 콘텐츠 수 | `450` |
+| `top_hashtags` | 공통 해시태그 | `["#grwm", "#tutorial"]` |
+| `top_content_types` | 주요 콘텐츠 유형 | `["Before/After", "Tutorial"]` |
+| `optimal_length` | 최적 길이 | `"15-30초"` |
+| `format_distribution` | 포맷 분포 | `{"Reels": 78, "Image": 22}` |
+| `common_features` | 공통 특징 | `["자막 포함", "트렌딩 오디오"]` |
 
 ---
 
@@ -522,7 +633,14 @@ K-컬처 관심 해외 인플루언서 목록 (k_interest_reason 포함)
 
 **출력**
 
-뷰티 콘텐츠 유형별 평균 참여율, 최고 성과 유형
+| 필드 | 설명 | 예시 |
+|------|------|------|
+| `content_type` | 뷰티 콘텐츠 유형 | `"Makeup Tutorial"` |
+| `post_count` | 콘텐츠 수 | `3450` |
+| `avg_engagement_rate` | 평균 참여율 | `5.2` |
+| `avg_likes` | 평균 좋아요 수 | `4500` |
+| `avg_comments` | 평균 댓글 수 | `180` |
+| `top_performer` | 최고 성과 유형 | `"GRWM"` |
 
 ---
 
@@ -546,7 +664,14 @@ K-컬처 관심 해외 인플루언서 목록 (k_interest_reason 포함)
 
 **출력**
 
-멀티 플랫폼 인플루언서 목록 (보유 채널, 각 채널 URL 포함)
+| 필드 | 설명 | 예시 |
+|------|------|------|
+| `user_id` | 인플루언서 고유 ID | `"12345678"` |
+| `username` | 인스타그램 사용자명 | `"beauty_multi"` |
+| `follower_count` | 팔로워 수 | `95000` |
+| `channels` | 보유 채널 목록 | `["youtube", "tiktok", "blog"]` |
+| `channel_urls` | 채널별 URL | `{"youtube": "youtube.com/..."}` |
+| `collaboration_tier` | 협업 등급 | `"Ready - Premium"` |
 
 **활용 예시**
 - "유튜브와 인스타그램 모두 운영하는 뷰티 인플루언서"
@@ -569,7 +694,14 @@ K-컬처 관심 해외 인플루언서 목록 (k_interest_reason 포함)
 
 **출력**
 
-쇼핑 링크 보유 인플루언서 목록 (채널별 URL 포함)
+| 필드 | 설명 | 예시 |
+|------|------|------|
+| `user_id` | 인플루언서 고유 ID | `"12345678"` |
+| `username` | 인스타그램 사용자명 | `"affiliate_beauty"` |
+| `follower_count` | 팔로워 수 | `85000` |
+| `shopping_channels` | 보유 쇼핑 채널 | `["amazon", "shopltk"]` |
+| `shopping_urls` | 채널별 URL | `{"amazon": "amazon.com/shop/..."}` |
+| `collaboration_tier` | 협업 등급 | `"Ready - Professional"` |
 
 **쇼핑 채널 옵션**
 
@@ -599,7 +731,14 @@ K-컬처 관심 해외 인플루언서 목록 (k_interest_reason 포함)
 
 **출력**
 
-연락처 보유 인플루언서 목록 (이메일/블로그 URL 포함)
+| 필드 | 설명 | 예시 |
+|------|------|------|
+| `user_id` | 인플루언서 고유 ID | `"12345678"` |
+| `username` | 인스타그램 사용자명 | `"beauty_biz"` |
+| `follower_count` | 팔로워 수 | `120000` |
+| `contact_channels` | 보유 연락처 유형 | `["email", "blog"]` |
+| `contact_info` | 연락처 정보 | `{"email": "biz@example.com"}` |
+| `collaboration_tier` | 협업 등급 | `"Ready - Premium"` |
 
 **연락처 채널 옵션**
 
@@ -626,12 +765,12 @@ K-컬처 관심 해외 인플루언서 목록 (k_interest_reason 포함)
 
 **출력**
 
-| 필드 | 설명 |
-|------|------|
-| `channel` | 채널명 |
-| `influencer_count` | 보유 인플루언서 수 |
-| `percentage` | 비율 |
-| `by_country` | 국가별 분포 |
+| 필드 | 설명 | 예시 |
+|------|------|------|
+| `channel` | 채널명 | `"youtube"` |
+| `influencer_count` | 보유 인플루언서 수 | `312` |
+| `percentage` | 비율 | `78.5` |
+| `by_country` | 국가별 분포 | `{"KR": 45, "JP": 33}` |
 
 **활용 예시**
 - "한국 뷰티 인플루언서 중 유튜브 채널 보유 비율"
@@ -652,7 +791,14 @@ K-컬처 관심 해외 인플루언서 목록 (k_interest_reason 포함)
 
 **출력**
 
-브랜드별 협업 인플루언서의 플랫폼 보유 현황 비교
+| 필드 | 설명 | 예시 |
+|------|------|------|
+| `brand` | 브랜드명 | `"Fwee"` |
+| `total_collaborators` | 총 협업 인플루언서 수 | `87` |
+| `youtube_count` | YouTube 보유 수 | `45` |
+| `youtube_percentage` | YouTube 보유 비율 | `51.7` |
+| `tiktok_count` | TikTok 보유 수 | `32` |
+| `tiktok_percentage` | TikTok 보유 비율 | `36.8` |
 
 ---
 

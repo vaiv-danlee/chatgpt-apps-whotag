@@ -51,7 +51,7 @@ app.get("/mcp", (req, res) => {
     },
     servers: [{ url: serverUrl }],
     "x-mcp": {
-      protocolVersion: "2025-03-26",
+      protocolVersion: "2025-11-25",
       capabilities: {
         tools: {},
         resources: {},
@@ -74,7 +74,7 @@ app.post("/mcp", async (req, res) => {
         jsonrpc: "2.0",
         id,
         result: {
-          protocolVersion: params?.protocolVersion || "2025-03-26",
+          protocolVersion: params?.protocolVersion || "2025-11-25",
           serverInfo: { name: "my-app", version: "1.0.0" },
           capabilities: { tools: {}, resources: {} },
         },
@@ -493,6 +493,8 @@ server.registerTool("search_influencers", {
 | `content` | ✅ | ✅ | User-facing text summary |
 | `_meta` | ❌ | ✅ | Component-only metadata |
 
+> **Note:** `structuredContent` is standard MCP since protocol version 2025-06-18. For backwards compatibility with older MCP clients (< 2025-06-18), also include serialized JSON in `content[].text`.
+
 **Real-World Example:**
 
 ```typescript
@@ -687,7 +689,7 @@ console.log('Tool keys:', Object.keys(registeredTool).join(', '));
 
 **Server Code:**
 - [ ] TypeScript compiles without errors
-- [ ] `GET /mcp` returns OpenAPI discovery document with `x-mcp` field
+- [ ] `GET /mcp` returns OpenAPI discovery document with `x-mcp` field (protocolVersion: 2025-11-25)
 - [ ] `POST /mcp` handles JSON-RPC methods (initialize, tools/list, resources/list, resources/read, tools/call)
 - [ ] `GET /mcp/sse` sets up SSE connection
 - [ ] `POST /mcp/message` routes messages to correct transport

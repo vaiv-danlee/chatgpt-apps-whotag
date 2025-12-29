@@ -14,6 +14,7 @@ import {
   getInfluencerBatch,
   getRepresentativeImages,
   getGridImages,
+  getProfileImage,
 } from "./api/influencer.js";
 import {
   searchInfluencersBigQuery,
@@ -3194,6 +3195,48 @@ server.tool(
       return { content: [{ type: "text", text: markdown }] };
     } catch (error) {
       console.error("Platform presence comparison error:", error);
+      return {
+        content: [{ type: "text", text: `Error: ${error instanceof Error ? error.message : String(error)}` }],
+        isError: true,
+      };
+    }
+  }
+);
+
+// get_profile_image - 인플루언서 프로필 이미지 URL 가져오기
+server.tool(
+  "get_profile_image",
+  "Get profile image URL for an influencer. Use this to fetch profile photos for PPT reports or visual presentations. Returns the image URL that can be downloaded and used in slides.",
+  {
+    user_id: z
+      .string()
+      .describe("The influencer's user ID (Instagram user ID)"),
+  },
+  async (params) => {
+    try {
+      const result = await getProfileImage(params.user_id);
+
+      if (!result) {
+        return {
+          content: [{ type: "text", text: `No profile image found for user: ${params.user_id}` }],
+          isError: true,
+        };
+      }
+
+      const markdown = `## Profile Image\n\n**User ID:** ${result.user_id}\n**Image URL:** ${result.image_url}`;
+
+      if (currentSessionHostType === "chatgpt") {
+        return {
+          structuredContent: {
+            user_id: result.user_id,
+            image_url: result.image_url,
+          },
+          content: [{ type: "text", text: markdown }],
+        };
+      }
+      return { content: [{ type: "text", text: markdown }] };
+    } catch (error) {
+      console.error("Get profile image error:", error);
       return {
         content: [{ type: "text", text: `Error: ${error instanceof Error ? error.message : String(error)}` }],
         isError: true,

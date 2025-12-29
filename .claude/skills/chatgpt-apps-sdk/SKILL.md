@@ -77,7 +77,7 @@ app.get("/mcp", (req, res) => {
     info: { title: "My App MCP", version: "1.0.0" },
     servers: [{ url: getServerUrl(req) }],
     "x-mcp": {
-      protocolVersion: "2025-03-26",
+      protocolVersion: "2025-11-25",
       capabilities: { tools: {}, resources: {} },
       transport: { type: "sse", url: "/mcp/sse" },
     },
@@ -172,6 +172,8 @@ server.registerTool(
 | `structuredContent` | ✅ | ✅ | Data for GPT to analyze |
 | `content` | ✅ | ✅ | User-facing text summary |
 | `_meta` | ❌ | ✅ | Component-only metadata |
+
+> **Note:** `structuredContent` is standard MCP since protocol version 2025-06-18. For backwards compatibility with older MCP clients (< 2025-06-18), also include serialized JSON in `content[].text`. See `references/mcp-protocol.md` for version details.
 
 ## React Component Development
 
@@ -329,11 +331,12 @@ curl -X POST http://localhost:3000/mcp \
 ## Pre-Deployment Checklist
 
 **Server:**
-- [ ] `GET /mcp` returns discovery document with `x-mcp`
+- [ ] `GET /mcp` returns discovery document with `x-mcp` (protocolVersion: 2025-11-25)
 - [ ] `POST /mcp` handles initialize, tools/list, resources/list, resources/read, tools/call
 - [ ] Session management implemented
 - [ ] CORS enabled for ChatGPT domains
 - [ ] `structuredContent` used for data GPT should analyze
+- [ ] `content` includes text fallback for older MCP clients
 
 **Component:**
 - [ ] `dist/component.js` exists
