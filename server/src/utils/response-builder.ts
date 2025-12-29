@@ -119,12 +119,13 @@ export function buildToolResponse(options: BuildToolResponseOptions): ToolRespon
   };
 
   // Build base response - ALL hosts get structuredContent
+  // content contains JSON.stringify for backward compatibility (MCP spec recommendation)
   const response: ToolResponse = {
     structuredContent,
     content: [
       {
         type: "text" as const,
-        text: options.description,
+        text: JSON.stringify(structuredContent),
       },
     ],
   };
@@ -151,23 +152,25 @@ export function buildErrorResponse(
   errorMessage: string,
   toolCategory: ToolCategory = "utility"
 ): ToolResponse {
-  return {
-    structuredContent: {
-      meta: {
-        toolName,
-        toolCategory,
-        operationType: "search" as OperationType,
-        timestamp: new Date().toISOString(),
-      },
-      error: {
-        message: errorMessage,
-        code: "TOOL_ERROR",
-      },
+  const structuredContent = {
+    meta: {
+      toolName,
+      toolCategory,
+      operationType: "search" as OperationType,
+      timestamp: new Date().toISOString(),
     },
+    error: {
+      message: errorMessage,
+      code: "TOOL_ERROR",
+    },
+  };
+
+  return {
+    structuredContent,
     content: [
       {
         type: "text" as const,
-        text: `Error: ${errorMessage}`,
+        text: JSON.stringify(structuredContent),
       },
     ],
     isError: true,

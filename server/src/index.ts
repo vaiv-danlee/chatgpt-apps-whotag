@@ -226,79 +226,6 @@ function detectHostType(req: express.Request): HostType {
   return "standard";
 }
 
-// Helper to format profiles as markdown for non-ChatGPT hosts
-function formatProfilesAsMarkdown(profiles: any[], query: string, totalCount: number, summary: string): string {
-  let markdown = `## Influencer Search Results\n\n`;
-  markdown += `**Query:** ${query}\n`;
-  markdown += `**Total Found:** ${totalCount}\n`;
-  markdown += `**Summary:** ${summary}\n\n`;
-  markdown += `---\n\n`;
-
-  profiles.forEach((profile, index) => {
-    markdown += `### ${index + 1}. ${profile.full_name || profile.username}\n`;
-    markdown += `- **Username:** @${profile.username}\n`;
-    markdown += `- **Followers:** ${profile.followed_by?.toLocaleString() || "N/A"}\n`;
-    markdown += `- **Engagement Rate:** ${profile.engagement_rate || "N/A"}${profile.engagement_rate_tag ? ` (${profile.engagement_rate_tag})` : ""}\n`;
-
-    // Profile image
-    if (profile.profile_pic_url) {
-      markdown += `- **Profile Image:** ${profile.profile_pic_url}\n`;
-    }
-
-    // Marketing core information
-    if (profile.collaboration_tier) {
-      markdown += `- **Collaboration Tier:** ${profile.collaboration_tier}\n`;
-    }
-    if (profile.account_type) {
-      markdown += `- **Account Type:** ${profile.account_type}\n`;
-    }
-    if (profile.willing_to_collaborate !== undefined) {
-      markdown += `- **Willing to Collaborate:** ${profile.willing_to_collaborate ? "Yes" : "No"}\n`;
-    }
-    if (profile.collaborate_brand?.length > 0) {
-      markdown += `- **Past Brand Collaborations:** ${profile.collaborate_brand.slice(0, 5).join(", ")}${profile.collaborate_brand.length > 5 ? "..." : ""}\n`;
-    }
-    if (profile.tag_brand?.length > 0) {
-      markdown += `- **Tagged Brands:** ${profile.tag_brand.slice(0, 5).join(", ")}${profile.tag_brand.length > 5 ? "..." : ""}\n`;
-    }
-    if (profile.note_for_brand_collaborate_point?.length > 0) {
-      markdown += `- **Collaboration Strengths:** ${profile.note_for_brand_collaborate_point.join(", ")}\n`;
-    }
-    if (profile.note_for_brand_weak_point?.length > 0) {
-      markdown += `- **Collaboration Weaknesses:** ${profile.note_for_brand_weak_point.join(", ")}\n`;
-    }
-
-    // Demographics & target
-    if (profile.country?.length > 0) {
-      markdown += `- **Country:** ${profile.country.join(", ")}\n`;
-    }
-    if (profile.language?.length > 0) {
-      markdown += `- **Language:** ${profile.language.join(", ")}\n`;
-    }
-    if (profile.age_range) {
-      markdown += `- **Age Range:** ${profile.age_range}\n`;
-    }
-    if (profile.field_of_creator?.length > 0) {
-      markdown += `- **Field:** ${profile.field_of_creator.join(", ")}\n`;
-    }
-    if (profile.interests?.length > 0) {
-      markdown += `- **Interests:** ${profile.interests.slice(0, 10).join(", ")}${profile.interests.length > 10 ? "..." : ""}\n`;
-    }
-    if (profile.demo_short) {
-      markdown += `- **Summary:** ${profile.demo_short}\n`;
-    }
-
-    // Biography (at the end)
-    if (profile.biography) {
-      markdown += `- **Bio:** ${profile.biography.substring(0, 200)}${profile.biography.length > 200 ? "..." : ""}\n`;
-    }
-
-    markdown += `\n`;
-  });
-
-  return markdown;
-}
-
 // Tool usage guidelines for ChatGPT
 // General tool usage guidelines for ChatGPT
 const TOOL_USAGE_GUIDELINES = `## WHOTAG Tools Usage Guidelines
@@ -933,43 +860,6 @@ server.registerTool(
 
       const searchDesc = getSearchDescription(params);
 
-      // Format as markdown for display
-      let markdown = `## BigQuery Influencer Search Results\n\n`;
-      markdown += `**Search Criteria:** ${searchDesc}\n`;
-      markdown += `**Total Found:** ${result.totalRows}\n`;
-      markdown += `**Download CSV:** ${result.downloadUrl}\n\n`;
-      markdown += `---\n\n`;
-
-      // Show top 20 results
-      const topResults = result.data.slice(0, 20);
-      topResults.forEach((row: any, index: number) => {
-        markdown += `### ${index + 1}. ${row.full_name || row.username}\n`;
-        markdown += `- **Username:** @${row.username}\n`;
-        markdown += `- **Followers:** ${row.follower_count?.toLocaleString() || "N/A"}\n`;
-        if (row.collaboration_tier) {
-          markdown += `- **Collaboration Tier:** ${row.collaboration_tier}\n`;
-        }
-        if (row.country?.length) {
-          markdown += `- **Country:** ${Array.isArray(row.country) ? row.country.join(", ") : row.country}\n`;
-        }
-        if (row.interests?.length) {
-          const interests = Array.isArray(row.interests) ? row.interests.slice(0, 5).join(", ") : row.interests;
-          markdown += `- **Interests:** ${interests}\n`;
-        }
-        // Beauty fields if present
-        if (row.skin_type?.length) {
-          markdown += `- **Skin Type:** ${Array.isArray(row.skin_type) ? row.skin_type.join(", ") : row.skin_type}\n`;
-        }
-        if (row.personal_color) {
-          markdown += `- **Personal Color:** ${row.personal_color}\n`;
-        }
-        markdown += `\n`;
-      });
-
-      if (result.totalRows > 20) {
-        markdown += `\n*... and ${result.totalRows - 20} more results. Download the CSV for full data.*\n`;
-      }
-
       return buildToolResponse({
         toolName: "search_influencers_bigquery",
         toolCategory: "influencer_search",
@@ -1079,42 +969,6 @@ server.registerTool(
 
       const searchDesc = getBrandSearchDescription(params);
 
-      // Format as markdown for display
-      let markdown = `## Brand Collaboration Search Results\n\n`;
-      markdown += `**Search Criteria:** ${searchDesc}\n`;
-      markdown += `**Total Found:** ${result.totalRows}\n`;
-      markdown += `**Download CSV:** ${result.downloadUrl}\n\n`;
-      markdown += `---\n\n`;
-
-      // Show top 20 results
-      const topResults = result.data.slice(0, 20);
-      topResults.forEach((row: any, index: number) => {
-        markdown += `### ${index + 1}. ${row.full_name || row.username}\n`;
-        markdown += `- **Username:** @${row.username}\n`;
-        markdown += `- **Followers:** ${row.follower_count?.toLocaleString() || "N/A"}\n`;
-        if (row.collaborate_brand?.length) {
-          const brands = Array.isArray(row.collaborate_brand)
-            ? row.collaborate_brand.slice(0, 10).join(", ")
-            : row.collaborate_brand;
-          markdown += `- **Collaborated Brands:** ${brands}\n`;
-        }
-        if (row.collaboration_tier) {
-          markdown += `- **Collaboration Tier:** ${row.collaboration_tier}\n`;
-        }
-        if (row.country?.length) {
-          markdown += `- **Country:** ${Array.isArray(row.country) ? row.country.join(", ") : row.country}\n`;
-        }
-        if (row.interests?.length) {
-          const interests = Array.isArray(row.interests) ? row.interests.slice(0, 5).join(", ") : row.interests;
-          markdown += `- **Interests:** ${interests}\n`;
-        }
-        markdown += `\n`;
-      });
-
-      if (result.totalRows > 20) {
-        markdown += `\n*... and ${result.totalRows - 20} more results. Download the CSV for full data.*\n`;
-      }
-
       return buildToolResponse({
         toolName: "search_by_brand_collaboration",
         toolCategory: "influencer_search",
@@ -1222,17 +1076,6 @@ server.registerTool(
 
       const searchDesc = getHashtagTrendDescription(params);
 
-      let markdown = `## Hashtag Trend Analysis\n\n`;
-      markdown += `**Criteria:** ${searchDesc}\n`;
-      markdown += `**Total Hashtags:** ${result.totalRows}\n`;
-      markdown += `**Download CSV:** ${result.downloadUrl}\n\n`;
-      markdown += `| Rank | Hashtag | Usage | Users | Avg Engagement |\n`;
-      markdown += `|------|---------|-------|-------|----------------|\n`;
-
-      result.data.slice(0, 30).forEach((row: any, idx: number) => {
-        markdown += `| ${idx + 1} | #${row.hashtag} | ${row.usage_count} | ${row.unique_users} | ${row.avg_engagement?.toFixed(1) || "N/A"} |\n`;
-      });
-
       return buildToolResponse({
         toolName: "analyze_hashtag_trends_bigquery",
         toolCategory: "trend_analysis",
@@ -1332,18 +1175,6 @@ server.registerTool(
 
       const searchDesc = getEmergingHashtagDescription(params);
 
-      let markdown = `## Emerging Hashtags Detection\n\n`;
-      markdown += `**Criteria:** ${searchDesc}\n`;
-      markdown += `**Found:** ${result.totalRows} emerging hashtags\n`;
-      markdown += `**Download CSV:** ${result.downloadUrl}\n\n`;
-      markdown += `| Hashtag | Previous | Current | Growth Rate |\n`;
-      markdown += `|---------|----------|---------|-------------|\n`;
-
-      result.data.slice(0, 20).forEach((row: any) => {
-        const growthDisplay = row.previous_count === 0 ? "NEW" : `${(row.growth_rate * 100).toFixed(0)}%`;
-        markdown += `| #${row.hashtag} | ${row.previous_count} | ${row.current_count} | ${growthDisplay} |\n`;
-      });
-
       return buildToolResponse({
         toolName: "detect_emerging_hashtags",
         toolCategory: "trend_analysis",
@@ -1431,27 +1262,6 @@ server.registerTool(
       }
 
       const searchDesc = getRegionalHashtagDescription(params);
-
-      let markdown = `## Regional Hashtag Comparison\n\n`;
-      markdown += `**Criteria:** ${searchDesc}\n`;
-      markdown += `**Download CSV:** ${result.downloadUrl}\n\n`;
-
-      // Group by country
-      const byCountry: Record<string, any[]> = {};
-      result.data.forEach((row: any) => {
-        if (!byCountry[row.country]) byCountry[row.country] = [];
-        byCountry[row.country].push(row);
-      });
-
-      for (const [country, hashtags] of Object.entries(byCountry)) {
-        markdown += `### ${country}\n`;
-        markdown += `| Rank | Hashtag | Usage |\n`;
-        markdown += `|------|---------|-------|\n`;
-        hashtags.slice(0, 10).forEach((row: any) => {
-          markdown += `| ${row.rank} | #${row.hashtag} | ${row.usage_count} |\n`;
-        });
-        markdown += `\n`;
-      }
 
       return buildToolResponse({
         toolName: "compare_regional_hashtags",
@@ -1541,18 +1351,6 @@ server.registerTool(
       }
 
       const searchDesc = getBeautyIngredientTrendDescription(params);
-
-      let markdown = `## Beauty Ingredient Trends\n\n`;
-      markdown += `**Criteria:** ${searchDesc}\n`;
-      markdown += `**Download CSV:** ${result.downloadUrl}\n\n`;
-      markdown += `| Ingredient | Count | Previous | Growth | Related Products | Related Concerns |\n`;
-      markdown += `|------------|-------|----------|--------|------------------|------------------|\n`;
-
-      result.data.slice(0, 15).forEach((row: any) => {
-        const growthPct = ((row.growth_rate - 1) * 100).toFixed(0);
-        const growthStr = row.growth_rate >= 1 ? `+${growthPct}%` : `${growthPct}%`;
-        markdown += `| ${row.ingredient} | ${row.current_count} | ${row.previous_count} | ${growthStr} | ${row.related_products || '-'} | ${row.related_concerns || '-'} |\n`;
-      });
 
       return buildToolResponse({
         toolName: "analyze_beauty_ingredient_trends",
@@ -1649,15 +1447,6 @@ server.registerTool(
 
       const searchDesc = getBrandMentionDescription(params);
 
-      let markdown = `## Brand Mention Analysis\n\n`;
-      markdown += `**Criteria:** ${searchDesc}\n`;
-      markdown += `**Download CSV:** ${result.downloadUrl}\n\n`;
-      markdown += `| Brand | Mentions | Influencers | Sponsored | Avg Engagement |\n`;
-      markdown += `|-------|----------|-------------|-----------|----------------|\n`;
-      result.data.forEach((row: any) => {
-        markdown += `| ${row.brand_name} | ${row.mention_count} | ${row.unique_influencers} | ${row.sponsored_count} | ${row.avg_engagement} |\n`;
-      });
-
       return buildToolResponse({
         toolName: "analyze_brand_mentions",
         toolCategory: "brand_analysis",
@@ -1752,16 +1541,6 @@ server.registerTool(
 
       const searchDesc = getBrandCollaboratorDescription(params);
 
-      let markdown = `## Brand Collaborators: ${params.brand_name}\n\n`;
-      markdown += `**Criteria:** ${searchDesc}\n`;
-      markdown += `**Found:** ${result.totalRows} influencers\n`;
-      markdown += `**Download CSV:** ${result.downloadUrl}\n\n`;
-      markdown += `| Username | Followers | Tier | Country |\n`;
-      markdown += `|----------|-----------|------|----------|\n`;
-      result.data.slice(0, 20).forEach((row: any) => {
-        markdown += `| @${row.username} | ${row.follower_count?.toLocaleString() || 'N/A'} | ${row.collaboration_tier} | ${row.country} |\n`;
-      });
-
       return buildToolResponse({
         toolName: "find_brand_collaborators",
         toolCategory: "brand_analysis",
@@ -1850,15 +1629,6 @@ server.registerTool(
 
       const searchDesc = getSponsoredContentDescription(params);
 
-      let markdown = `## Sponsored vs Organic Content Performance\n\n`;
-      markdown += `**Criteria:** ${searchDesc}\n`;
-      markdown += `**Download CSV:** ${result.downloadUrl}\n\n`;
-      markdown += `| Type | Content Count | Influencers | Avg Likes | Avg Comments | Avg Engagement |\n`;
-      markdown += `|------|---------------|-------------|-----------|--------------|----------------|\n`;
-      result.data.forEach((row: any) => {
-        markdown += `| ${row.content_category} | ${row.content_count} | ${row.unique_influencers} | ${row.avg_likes} | ${row.avg_comments} | ${row.avg_engagement} |\n`;
-      });
-
       return buildToolResponse({
         toolName: "analyze_sponsored_content_performance",
         toolCategory: "brand_analysis",
@@ -1937,15 +1707,6 @@ server.registerTool(
 
       const searchDesc = getCompetitorBrandDescription(params);
 
-      let markdown = `## Competitor Brand Comparison\n\n`;
-      markdown += `**Criteria:** ${searchDesc}\n`;
-      markdown += `**Download CSV:** ${result.downloadUrl}\n\n`;
-      markdown += `| Brand | Collaborators | Sponsored Posts | Avg Engagement | Tier Distribution |\n`;
-      markdown += `|-------|---------------|-----------------|----------------|-------------------|\n`;
-      result.data.forEach((row: any) => {
-        markdown += `| ${row.brand} | ${row.collaborator_count} | ${row.sponsored_posts} | ${row.avg_engagement || 'N/A'} | ${row.tier_distribution || 'N/A'} |\n`;
-      });
-
       return buildToolResponse({
         toolName: "compare_competitor_brands",
         toolCategory: "brand_analysis",
@@ -2023,19 +1784,6 @@ server.registerTool(
       }
 
       const searchDesc = getMarketDemographicsDescription(params);
-
-      let markdown = `## Market Demographics Analysis\n\n`;
-      markdown += `**Criteria:** ${searchDesc}\n`;
-      markdown += `**Download CSV:** ${result.downloadUrl}\n\n`;
-
-      // Build table header based on group_by
-      const groupBy = params.group_by || ["gender", "age_range"];
-      markdown += `| ${groupBy.join(" | ")} | Count | Avg Followers |\n`;
-      markdown += `|${groupBy.map(() => "------").join("|")}|-------|---------------|\n`;
-      result.data.slice(0, 20).forEach((row: any) => {
-        const values = groupBy.map((g) => row[g] || "N/A");
-        markdown += `| ${values.join(" | ")} | ${row.influencer_count} | ${row.avg_followers?.toLocaleString() || "N/A"} |\n`;
-      });
 
       return buildToolResponse({
         toolName: "analyze_market_demographics",
@@ -2131,17 +1879,6 @@ server.registerTool(
 
       const searchDesc = getKCultureInfluencerDescription(params);
 
-      let markdown = `## K-Culture Influencers\n\n`;
-      markdown += `**Criteria:** ${searchDesc}\n`;
-      markdown += `**Found:** ${result.totalRows} influencers\n`;
-      markdown += `**Download CSV:** ${result.downloadUrl}\n\n`;
-      markdown += `| Username | Followers | Country | K-Interest Reason |\n`;
-      markdown += `|----------|-----------|---------|-------------------|\n`;
-      result.data.slice(0, 15).forEach((row: any) => {
-        const reason = row.k_interest_reason?.substring(0, 50) + (row.k_interest_reason?.length > 50 ? "..." : "") || "N/A";
-        markdown += `| @${row.username} | ${row.follower_count?.toLocaleString() || "N/A"} | ${row.country} | ${reason} |\n`;
-      });
-
       return buildToolResponse({
         toolName: "find_k_culture_influencers",
         toolCategory: "market_insights",
@@ -2225,15 +1962,6 @@ server.registerTool(
       }
 
       const searchDesc = getLifestageSegmentDescription(params);
-
-      let markdown = `## Lifestage Segment Analysis\n\n`;
-      markdown += `**Criteria:** ${searchDesc}\n`;
-      markdown += `**Download CSV:** ${result.downloadUrl}\n\n`;
-      markdown += `| Lifestage | Count | Avg Followers | Ready Tier % |\n`;
-      markdown += `|-----------|-------|---------------|---------------|\n`;
-      result.data.forEach((row: any) => {
-        markdown += `| ${row.lifestage} | ${row.influencer_count} | ${row.avg_followers?.toLocaleString() || "N/A"} | ${row.ready_tier_pct}% |\n`;
-      });
 
       return buildToolResponse({
         toolName: "analyze_lifestage_segments",
@@ -2329,15 +2057,6 @@ server.registerTool(
 
       const searchDesc = getBeautyPersonaDescription(params);
 
-      let markdown = `## Beauty Persona Segments\n\n`;
-      markdown += `**Criteria:** ${searchDesc}\n`;
-      markdown += `**Download CSV:** ${result.downloadUrl}\n\n`;
-      markdown += `| Skin Type | Personal Color | Brand Tier | Count | Avg Followers |\n`;
-      markdown += `|-----------|----------------|------------|-------|---------------|\n`;
-      result.data.slice(0, 20).forEach((row: any) => {
-        markdown += `| ${row.skin_type || "N/A"} | ${row.personal_color || "N/A"} | ${row.brand_tier_segments || "N/A"} | ${row.influencer_count} | ${row.avg_followers?.toLocaleString() || "N/A"} |\n`;
-      });
-
       return buildToolResponse({
         toolName: "analyze_beauty_persona_segments",
         toolCategory: "market_insights",
@@ -2407,24 +2126,6 @@ server.tool(
         };
       }
 
-      let markdown = `## Engagement Metrics Analysis\n\n`;
-      markdown += `**Download CSV:** ${result.downloadUrl}\n\n`;
-
-      if (result.data.length > 0) {
-        const row: any = result.data[0];
-        markdown += `| Metric | Value |\n`;
-        markdown += `|--------|-------|\n`;
-        markdown += `| Total Content | ${row.total_content?.toLocaleString() || "N/A"} |\n`;
-        markdown += `| Unique Influencers | ${row.unique_influencers?.toLocaleString() || "N/A"} |\n`;
-        markdown += `| Avg Likes | ${row.avg_likes?.toLocaleString() || "N/A"} |\n`;
-        markdown += `| Median Likes | ${row.median_likes?.toLocaleString() || "N/A"} |\n`;
-        markdown += `| Avg Comments | ${row.avg_comments?.toLocaleString() || "N/A"} |\n`;
-        markdown += `| Median Comments | ${row.median_comments?.toLocaleString() || "N/A"} |\n`;
-        markdown += `| Avg Engagement Rate | ${row.avg_engagement_rate}% |\n`;
-        markdown += `| P90 Likes | ${row.p90_likes?.toLocaleString() || "N/A"} |\n`;
-        markdown += `| P95 Likes | ${row.p95_likes?.toLocaleString() || "N/A"} |\n`;
-      }
-
       return buildToolResponse({
         toolName: "analyze_engagement_metrics",
         toolCategory: "content_analysis",
@@ -2475,14 +2176,6 @@ server.tool(
         };
       }
 
-      let markdown = `## Content Format Comparison\n\n`;
-      markdown += `**Download CSV:** ${result.downloadUrl}\n\n`;
-      markdown += `| Format | Count | Influencers | Avg Likes | Avg Comments | Engagement Rate |\n`;
-      markdown += `|--------|-------|-------------|-----------|--------------|----------------|\n`;
-      result.data.forEach((row: any) => {
-        markdown += `| ${row.content_type} | ${row.content_count?.toLocaleString()} | ${row.unique_influencers?.toLocaleString()} | ${row.avg_likes?.toLocaleString()} | ${row.avg_comments?.toLocaleString()} | ${row.avg_engagement_rate}% |\n`;
-      });
-
       return buildToolResponse({
         toolName: "compare_content_formats",
         toolCategory: "content_analysis",
@@ -2532,17 +2225,6 @@ server.tool(
           isError: true,
         };
       }
-
-      const dayNames = ["", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-      let markdown = `## Optimal Posting Time Analysis\n\n`;
-      markdown += `**Download CSV:** ${result.downloadUrl}\n\n`;
-      markdown += `| Day | Hour | Posts | Avg Likes | Engagement Rate |\n`;
-      markdown += `|-----|------|-------|-----------|----------------|\n`;
-      result.data.slice(0, 20).forEach((row: any) => {
-        const dayName = dayNames[row.day_of_week] || row.day_of_week;
-        markdown += `| ${dayName} | ${row.hour}:00 | ${row.post_count?.toLocaleString()} | ${row.avg_likes?.toLocaleString()} | ${row.avg_engagement_rate}% |\n`;
-      });
 
       return buildToolResponse({
         toolName: "find_optimal_posting_time",
@@ -2597,20 +2279,6 @@ server.tool(
           content: [{ type: "text", text: `Analysis failed: ${result.error}` }],
           isError: true,
         };
-      }
-
-      let markdown = `## Viral Content Pattern Analysis\n\n`;
-      markdown += `**Download CSV:** ${result.downloadUrl}\n\n`;
-
-      if (result.data.length > 0) {
-        const row: any = result.data[0];
-        markdown += `| Metric | Value |\n`;
-        markdown += `|--------|-------|\n`;
-        markdown += `| Viral Content Count | ${row.viral_content_count?.toLocaleString() || "N/A"} |\n`;
-        markdown += `| Unique Creators | ${row.unique_creators?.toLocaleString() || "N/A"} |\n`;
-        markdown += `| Avg Likes | ${row.avg_likes?.toLocaleString() || "N/A"} |\n`;
-        markdown += `| Avg Comments | ${row.avg_comments?.toLocaleString() || "N/A"} |\n`;
-        markdown += `| Avg Caption Length | ${row.avg_caption_length?.toLocaleString() || "N/A"} chars |\n`;
       }
 
       return buildToolResponse({
