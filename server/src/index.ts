@@ -14,8 +14,13 @@ import {
   getInfluencerBatch,
   getRepresentativeImages,
   getGridImages,
-  getProfileImage,
 } from "./api/influencer.js";
+import {
+  buildToolResponse,
+  buildErrorResponse,
+  type ToolCategory,
+  type OperationType,
+} from "./utils/response-builder.js";
 import {
   searchInfluencersBigQuery,
   getSearchDescription,
@@ -703,29 +708,22 @@ server.registerTool(
         demo_short: profile.general?.demo_short,
       }));
 
-      // 4. Return results based on host type
+      // 4. Return standardized response with structuredContent
       console.error(`Returning results for host type: ${currentSessionHostType}`);
 
-      if (currentSessionHostType === "chatgpt") {
-        // ChatGPT: Return rich response with UI widget
-        return {
-          structuredContent: {
-            summary: {
-              totalCount: searchResults.item.total_count,
-              query: args.query,
-              searchSummary: searchResults.item.search_summary,
-            },
-            influencers: detailedProfiles,
-          },
-          content: [
-            {
-              type: "text",
-              text: `Found ${searchResults.item.total_count} influencers for "${args.query}".`,
-            },
-          ],
-          _meta: {
-            "openai/outputTemplate": "ui://widget/carousel.html",
-            "openai/widgetAccessible": true,
+      const response = buildToolResponse({
+        toolName: "search_influencers",
+        toolCategory: "influencer_search",
+        operationType: "search",
+        description: `Found ${searchResults.item.total_count} influencers for "${args.query}"`,
+        totalResults: searchResults.item.total_count,
+        criteria: args.query,
+        data: detailedProfiles,
+        // ChatGPT widget support
+        chatGptMeta: currentSessionHostType === "chatgpt" ? {
+          outputTemplate: "ui://widget/carousel.html",
+          widgetAccessible: true,
+          widgetData: {
             allProfiles: profilesWithImages,
             searchMetadata: {
               query: args.query,
@@ -735,25 +733,10 @@ server.registerTool(
               summary: searchResults.item.search_summary,
             },
           },
-        };
-      } else {
-        // Standard MCP hosts (Claude, Cursor, etc.): Return markdown content only
-        const markdownContent = formatProfilesAsMarkdown(
-          detailedProfiles,
-          args.query,
-          searchResults.item.total_count,
-          searchResults.item.search_summary
-        );
+        } : undefined,
+      });
 
-        return {
-          content: [
-            {
-              type: "text",
-              text: markdownContent,
-            },
-          ],
-        };
-      }
+      return response;
     } catch (error) {
       console.error("Search error:", error);
       const errorMessage =
@@ -987,39 +970,16 @@ server.registerTool(
         markdown += `\n*... and ${result.totalRows - 20} more results. Download the CSV for full data.*\n`;
       }
 
-      if (currentSessionHostType === "chatgpt") {
-        return {
-          structuredContent: {
-            search: {
-              type: "bigquery_influencer_search",
-              criteria: searchDesc,
-              totalResults: result.totalRows,
-              queryExecuted: result.query,
-            },
-            data: result.data.slice(0, 50), // Top 50 for GPT
-            downloadUrl: result.downloadUrl,
-          },
-          content: [
-            {
-              type: "text",
-              text: `BigQuery search complete. Found ${result.totalRows} influencers matching: ${searchDesc}\n\n**📥 Download Full Data (CSV):** ${result.downloadUrl}`,
-            },
-          ],
-          _meta: {
-            downloadUrl: result.downloadUrl,
-            totalRows: result.totalRows,
-          },
-        };
-      } else {
-        return {
-          content: [
-            {
-              type: "text",
-              text: markdown,
-            },
-          ],
-        };
-      }
+      return buildToolResponse({
+        toolName: "search_influencers_bigquery",
+        toolCategory: "influencer_search",
+        operationType: "search",
+        description: `BigQuery search complete. Found ${result.totalRows} influencers matching: ${searchDesc}`,
+        totalResults: result.totalRows,
+        criteria: searchDesc,
+        data: result.data,
+        downloadUrl: result.downloadUrl,
+      });
     } catch (error) {
       console.error("BigQuery search error:", error);
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -1155,40 +1115,16 @@ server.registerTool(
         markdown += `\n*... and ${result.totalRows - 20} more results. Download the CSV for full data.*\n`;
       }
 
-      if (currentSessionHostType === "chatgpt") {
-        return {
-          structuredContent: {
-            search: {
-              type: "brand_collaboration_search",
-              criteria: searchDesc,
-              brandName: params.brand_name,
-              totalResults: result.totalRows,
-              queryExecuted: result.query,
-            },
-            data: result.data.slice(0, 50), // Top 50 for GPT
-            downloadUrl: result.downloadUrl,
-          },
-          content: [
-            {
-              type: "text",
-              text: `Brand collaboration search complete. Found ${result.totalRows} influencers who collaborated with "${params.brand_name}".\n\n**📥 Download Full Data (CSV):** ${result.downloadUrl}`,
-            },
-          ],
-          _meta: {
-            downloadUrl: result.downloadUrl,
-            totalRows: result.totalRows,
-          },
-        };
-      } else {
-        return {
-          content: [
-            {
-              type: "text",
-              text: markdown,
-            },
-          ],
-        };
-      }
+      return buildToolResponse({
+        toolName: "search_by_brand_collaboration",
+        toolCategory: "influencer_search",
+        operationType: "search",
+        description: `Brand collaboration search complete. Found ${result.totalRows} influencers who collaborated with "${params.brand_name}"`,
+        totalResults: result.totalRows,
+        criteria: searchDesc,
+        data: result.data,
+        downloadUrl: result.downloadUrl,
+      });
     } catch (error) {
       console.error("Brand collaboration search error:", error);
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -1297,18 +1233,16 @@ server.registerTool(
         markdown += `| ${idx + 1} | #${row.hashtag} | ${row.usage_count} | ${row.unique_users} | ${row.avg_engagement?.toFixed(1) || "N/A"} |\n`;
       });
 
-      if (currentSessionHostType === "chatgpt") {
-        return {
-          structuredContent: {
-            analysis: { type: "hashtag_trends", criteria: searchDesc },
-            data: result.data.slice(0, 100),
-            downloadUrl: result.downloadUrl,
-          },
-          content: [{ type: "text", text: `Hashtag analysis complete. Found ${result.totalRows} trending hashtags.\n\n**Download:** ${result.downloadUrl}` }],
-          _meta: { downloadUrl: result.downloadUrl, totalRows: result.totalRows },
-        };
-      }
-      return { content: [{ type: "text", text: markdown }] };
+      return buildToolResponse({
+        toolName: "analyze_hashtag_trends_bigquery",
+        toolCategory: "trend_analysis",
+        operationType: "analysis",
+        description: `Hashtag analysis complete. Found ${result.totalRows} trending hashtags`,
+        totalResults: result.totalRows,
+        criteria: searchDesc,
+        data: result.data,
+        downloadUrl: result.downloadUrl,
+      });
     } catch (error) {
       console.error("Hashtag trend analysis error:", error);
       return {
@@ -1410,18 +1344,16 @@ server.registerTool(
         markdown += `| #${row.hashtag} | ${row.previous_count} | ${row.current_count} | ${growthDisplay} |\n`;
       });
 
-      if (currentSessionHostType === "chatgpt") {
-        return {
-          structuredContent: {
-            analysis: { type: "emerging_hashtags", criteria: searchDesc },
-            data: result.data,
-            downloadUrl: result.downloadUrl,
-          },
-          content: [{ type: "text", text: `Detected ${result.totalRows} emerging hashtags.\n\n**Download:** ${result.downloadUrl}` }],
-          _meta: { downloadUrl: result.downloadUrl, totalRows: result.totalRows },
-        };
-      }
-      return { content: [{ type: "text", text: markdown }] };
+      return buildToolResponse({
+        toolName: "detect_emerging_hashtags",
+        toolCategory: "trend_analysis",
+        operationType: "analysis",
+        description: `Detected ${result.totalRows} emerging hashtags`,
+        totalResults: result.totalRows,
+        criteria: searchDesc,
+        data: result.data,
+        downloadUrl: result.downloadUrl,
+      });
     } catch (error) {
       console.error("Emerging hashtag detection error:", error);
       return {
@@ -1521,18 +1453,16 @@ server.registerTool(
         markdown += `\n`;
       }
 
-      if (currentSessionHostType === "chatgpt") {
-        return {
-          structuredContent: {
-            analysis: { type: "regional_comparison", criteria: searchDesc, countries: params.countries },
-            data: result.data,
-            downloadUrl: result.downloadUrl,
-          },
-          content: [{ type: "text", text: `Regional comparison complete for ${params.countries.join(", ")}.\n\n**Download:** ${result.downloadUrl}` }],
-          _meta: { downloadUrl: result.downloadUrl, totalRows: result.totalRows },
-        };
-      }
-      return { content: [{ type: "text", text: markdown }] };
+      return buildToolResponse({
+        toolName: "compare_regional_hashtags",
+        toolCategory: "trend_analysis",
+        operationType: "comparison",
+        description: `Regional comparison complete for ${params.countries.join(", ")}`,
+        totalResults: result.totalRows,
+        criteria: searchDesc,
+        data: result.data,
+        downloadUrl: result.downloadUrl,
+      });
     } catch (error) {
       console.error("Regional comparison error:", error);
       return {
@@ -1624,18 +1554,16 @@ server.registerTool(
         markdown += `| ${row.ingredient} | ${row.current_count} | ${row.previous_count} | ${growthStr} | ${row.related_products || '-'} | ${row.related_concerns || '-'} |\n`;
       });
 
-      if (currentSessionHostType === "chatgpt") {
-        return {
-          structuredContent: {
-            analysis: { type: "beauty_ingredient_trends", criteria: searchDesc, category: params.category },
-            data: result.data,
-            downloadUrl: result.downloadUrl,
-          },
-          content: [{ type: "text", text: `Beauty ingredient analysis complete.\n\n**Category:** ${params.category}\n**Download:** ${result.downloadUrl}` }],
-          _meta: { downloadUrl: result.downloadUrl, totalRows: result.totalRows },
-        };
-      }
-      return { content: [{ type: "text", text: markdown }] };
+      return buildToolResponse({
+        toolName: "analyze_beauty_ingredient_trends",
+        toolCategory: "trend_analysis",
+        operationType: "analysis",
+        description: `Beauty ingredient analysis complete. Category: ${params.category}`,
+        totalResults: result.totalRows,
+        criteria: searchDesc,
+        data: result.data,
+        downloadUrl: result.downloadUrl,
+      });
     } catch (error) {
       console.error("Beauty ingredient analysis error:", error);
       return {
@@ -1730,18 +1658,16 @@ server.registerTool(
         markdown += `| ${row.brand_name} | ${row.mention_count} | ${row.unique_influencers} | ${row.sponsored_count} | ${row.avg_engagement} |\n`;
       });
 
-      if (currentSessionHostType === "chatgpt") {
-        return {
-          structuredContent: {
-            analysis: { type: "brand_mentions", criteria: searchDesc },
-            data: result.data,
-            downloadUrl: result.downloadUrl,
-          },
-          content: [{ type: "text", text: `Brand mention analysis complete.\n\n**Download:** ${result.downloadUrl}` }],
-          _meta: { downloadUrl: result.downloadUrl, totalRows: result.totalRows },
-        };
-      }
-      return { content: [{ type: "text", text: markdown }] };
+      return buildToolResponse({
+        toolName: "analyze_brand_mentions",
+        toolCategory: "brand_analysis",
+        operationType: "analysis",
+        description: `Brand mention analysis complete`,
+        totalResults: result.totalRows,
+        criteria: searchDesc,
+        data: result.data,
+        downloadUrl: result.downloadUrl,
+      });
     } catch (error) {
       console.error("Brand mention analysis error:", error);
       return {
@@ -1836,18 +1762,16 @@ server.registerTool(
         markdown += `| @${row.username} | ${row.follower_count?.toLocaleString() || 'N/A'} | ${row.collaboration_tier} | ${row.country} |\n`;
       });
 
-      if (currentSessionHostType === "chatgpt") {
-        return {
-          structuredContent: {
-            analysis: { type: "brand_collaborators", brand: params.brand_name, criteria: searchDesc },
-            data: result.data,
-            downloadUrl: result.downloadUrl,
-          },
-          content: [{ type: "text", text: `Found ${result.totalRows} collaborators for ${params.brand_name}.\n\n**Download:** ${result.downloadUrl}` }],
-          _meta: { downloadUrl: result.downloadUrl, totalRows: result.totalRows },
-        };
-      }
-      return { content: [{ type: "text", text: markdown }] };
+      return buildToolResponse({
+        toolName: "find_brand_collaborators",
+        toolCategory: "brand_analysis",
+        operationType: "search",
+        description: `Found ${result.totalRows} collaborators for ${params.brand_name}`,
+        totalResults: result.totalRows,
+        criteria: searchDesc,
+        data: result.data,
+        downloadUrl: result.downloadUrl,
+      });
     } catch (error) {
       console.error("Brand collaborator search error:", error);
       return {
@@ -1935,18 +1859,16 @@ server.registerTool(
         markdown += `| ${row.content_category} | ${row.content_count} | ${row.unique_influencers} | ${row.avg_likes} | ${row.avg_comments} | ${row.avg_engagement} |\n`;
       });
 
-      if (currentSessionHostType === "chatgpt") {
-        return {
-          structuredContent: {
-            analysis: { type: "sponsored_content", criteria: searchDesc },
-            data: result.data,
-            downloadUrl: result.downloadUrl,
-          },
-          content: [{ type: "text", text: `Sponsored content analysis complete.\n\n**Download:** ${result.downloadUrl}` }],
-          _meta: { downloadUrl: result.downloadUrl, totalRows: result.totalRows },
-        };
-      }
-      return { content: [{ type: "text", text: markdown }] };
+      return buildToolResponse({
+        toolName: "analyze_sponsored_content_performance",
+        toolCategory: "brand_analysis",
+        operationType: "analysis",
+        description: `Sponsored content analysis complete`,
+        totalResults: result.totalRows,
+        criteria: searchDesc,
+        data: result.data,
+        downloadUrl: result.downloadUrl,
+      });
     } catch (error) {
       console.error("Sponsored content analysis error:", error);
       return {
@@ -2024,18 +1946,16 @@ server.registerTool(
         markdown += `| ${row.brand} | ${row.collaborator_count} | ${row.sponsored_posts} | ${row.avg_engagement || 'N/A'} | ${row.tier_distribution || 'N/A'} |\n`;
       });
 
-      if (currentSessionHostType === "chatgpt") {
-        return {
-          structuredContent: {
-            analysis: { type: "competitor_brands", criteria: searchDesc, brands: params.brands },
-            data: result.data,
-            downloadUrl: result.downloadUrl,
-          },
-          content: [{ type: "text", text: `Competitor comparison complete for ${params.brands.join(", ")}.\n\n**Download:** ${result.downloadUrl}` }],
-          _meta: { downloadUrl: result.downloadUrl, totalRows: result.totalRows },
-        };
-      }
-      return { content: [{ type: "text", text: markdown }] };
+      return buildToolResponse({
+        toolName: "compare_competitor_brands",
+        toolCategory: "brand_analysis",
+        operationType: "comparison",
+        description: `Competitor comparison complete for ${params.brands.join(", ")}`,
+        totalResults: result.totalRows,
+        criteria: searchDesc,
+        data: result.data,
+        downloadUrl: result.downloadUrl,
+      });
     } catch (error) {
       console.error("Competitor brand comparison error:", error);
       return {
@@ -2117,18 +2037,16 @@ server.registerTool(
         markdown += `| ${values.join(" | ")} | ${row.influencer_count} | ${row.avg_followers?.toLocaleString() || "N/A"} |\n`;
       });
 
-      if (currentSessionHostType === "chatgpt") {
-        return {
-          structuredContent: {
-            analysis: { type: "market_demographics", criteria: searchDesc },
-            data: result.data,
-            downloadUrl: result.downloadUrl,
-          },
-          content: [{ type: "text", text: `Market demographics analysis complete.\n\n**Download:** ${result.downloadUrl}` }],
-          _meta: { downloadUrl: result.downloadUrl, totalRows: result.totalRows },
-        };
-      }
-      return { content: [{ type: "text", text: markdown }] };
+      return buildToolResponse({
+        toolName: "analyze_market_demographics",
+        toolCategory: "market_insights",
+        operationType: "analysis",
+        description: `Market demographics analysis complete`,
+        totalResults: result.totalRows,
+        criteria: searchDesc,
+        data: result.data,
+        downloadUrl: result.downloadUrl,
+      });
     } catch (error) {
       console.error("Market demographics error:", error);
       return {
@@ -2224,18 +2142,16 @@ server.registerTool(
         markdown += `| @${row.username} | ${row.follower_count?.toLocaleString() || "N/A"} | ${row.country} | ${reason} |\n`;
       });
 
-      if (currentSessionHostType === "chatgpt") {
-        return {
-          structuredContent: {
-            analysis: { type: "k_culture_influencers", criteria: searchDesc },
-            data: result.data,
-            downloadUrl: result.downloadUrl,
-          },
-          content: [{ type: "text", text: `Found ${result.totalRows} K-culture influencers.\n\n**Download:** ${result.downloadUrl}` }],
-          _meta: { downloadUrl: result.downloadUrl, totalRows: result.totalRows },
-        };
-      }
-      return { content: [{ type: "text", text: markdown }] };
+      return buildToolResponse({
+        toolName: "find_k_culture_influencers",
+        toolCategory: "market_insights",
+        operationType: "search",
+        description: `Found ${result.totalRows} K-culture influencers`,
+        totalResults: result.totalRows,
+        criteria: searchDesc,
+        data: result.data,
+        downloadUrl: result.downloadUrl,
+      });
     } catch (error) {
       console.error("K-culture search error:", error);
       return {
@@ -2319,18 +2235,16 @@ server.registerTool(
         markdown += `| ${row.lifestage} | ${row.influencer_count} | ${row.avg_followers?.toLocaleString() || "N/A"} | ${row.ready_tier_pct}% |\n`;
       });
 
-      if (currentSessionHostType === "chatgpt") {
-        return {
-          structuredContent: {
-            analysis: { type: "lifestage_segments", criteria: searchDesc },
-            data: result.data,
-            downloadUrl: result.downloadUrl,
-          },
-          content: [{ type: "text", text: `Lifestage analysis complete.\n\n**Download:** ${result.downloadUrl}` }],
-          _meta: { downloadUrl: result.downloadUrl, totalRows: result.totalRows },
-        };
-      }
-      return { content: [{ type: "text", text: markdown }] };
+      return buildToolResponse({
+        toolName: "analyze_lifestage_segments",
+        toolCategory: "market_insights",
+        operationType: "analysis",
+        description: `Lifestage analysis complete`,
+        totalResults: result.totalRows,
+        criteria: searchDesc,
+        data: result.data,
+        downloadUrl: result.downloadUrl,
+      });
     } catch (error) {
       console.error("Lifestage analysis error:", error);
       return {
@@ -2424,18 +2338,16 @@ server.registerTool(
         markdown += `| ${row.skin_type || "N/A"} | ${row.personal_color || "N/A"} | ${row.brand_tier_segments || "N/A"} | ${row.influencer_count} | ${row.avg_followers?.toLocaleString() || "N/A"} |\n`;
       });
 
-      if (currentSessionHostType === "chatgpt") {
-        return {
-          structuredContent: {
-            analysis: { type: "beauty_persona_segments", criteria: searchDesc },
-            data: result.data,
-            downloadUrl: result.downloadUrl,
-          },
-          content: [{ type: "text", text: `Beauty persona analysis complete.\n\n**Download:** ${result.downloadUrl}` }],
-          _meta: { downloadUrl: result.downloadUrl, totalRows: result.totalRows },
-        };
-      }
-      return { content: [{ type: "text", text: markdown }] };
+      return buildToolResponse({
+        toolName: "analyze_beauty_persona_segments",
+        toolCategory: "market_insights",
+        operationType: "analysis",
+        description: `Beauty persona analysis complete`,
+        totalResults: result.totalRows,
+        criteria: searchDesc,
+        data: result.data,
+        downloadUrl: result.downloadUrl,
+      });
     } catch (error) {
       console.error("Beauty persona analysis error:", error);
       return {
@@ -2513,18 +2425,15 @@ server.tool(
         markdown += `| P95 Likes | ${row.p95_likes?.toLocaleString() || "N/A"} |\n`;
       }
 
-      if (currentSessionHostType === "chatgpt") {
-        return {
-          structuredContent: {
-            analysis: { type: "engagement_metrics", params },
-            data: result.data,
-            downloadUrl: result.downloadUrl,
-          },
-          content: [{ type: "text", text: `Engagement metrics analysis complete.\n\n**Download:** ${result.downloadUrl}` }],
-          _meta: { downloadUrl: result.downloadUrl, totalRows: result.totalRows },
-        };
-      }
-      return { content: [{ type: "text", text: markdown }] };
+      return buildToolResponse({
+        toolName: "analyze_engagement_metrics",
+        toolCategory: "content_analysis",
+        operationType: "analysis",
+        description: `Engagement metrics analysis complete`,
+        totalResults: result.totalRows,
+        data: result.data,
+        downloadUrl: result.downloadUrl,
+      });
     } catch (error) {
       console.error("Engagement metrics analysis error:", error);
       return {
@@ -2574,18 +2483,15 @@ server.tool(
         markdown += `| ${row.content_type} | ${row.content_count?.toLocaleString()} | ${row.unique_influencers?.toLocaleString()} | ${row.avg_likes?.toLocaleString()} | ${row.avg_comments?.toLocaleString()} | ${row.avg_engagement_rate}% |\n`;
       });
 
-      if (currentSessionHostType === "chatgpt") {
-        return {
-          structuredContent: {
-            analysis: { type: "content_format_comparison", params },
-            data: result.data,
-            downloadUrl: result.downloadUrl,
-          },
-          content: [{ type: "text", text: `Content format comparison complete.\n\n**Download:** ${result.downloadUrl}` }],
-          _meta: { downloadUrl: result.downloadUrl, totalRows: result.totalRows },
-        };
-      }
-      return { content: [{ type: "text", text: markdown }] };
+      return buildToolResponse({
+        toolName: "compare_content_formats",
+        toolCategory: "content_analysis",
+        operationType: "comparison",
+        description: `Content format comparison complete`,
+        totalResults: result.totalRows,
+        data: result.data,
+        downloadUrl: result.downloadUrl,
+      });
     } catch (error) {
       console.error("Content format comparison error:", error);
       return {
@@ -2638,18 +2544,15 @@ server.tool(
         markdown += `| ${dayName} | ${row.hour}:00 | ${row.post_count?.toLocaleString()} | ${row.avg_likes?.toLocaleString()} | ${row.avg_engagement_rate}% |\n`;
       });
 
-      if (currentSessionHostType === "chatgpt") {
-        return {
-          structuredContent: {
-            analysis: { type: "optimal_posting_time", params },
-            data: result.data,
-            downloadUrl: result.downloadUrl,
-          },
-          content: [{ type: "text", text: `Optimal posting time analysis complete.\n\n**Download:** ${result.downloadUrl}` }],
-          _meta: { downloadUrl: result.downloadUrl, totalRows: result.totalRows },
-        };
-      }
-      return { content: [{ type: "text", text: markdown }] };
+      return buildToolResponse({
+        toolName: "find_optimal_posting_time",
+        toolCategory: "content_analysis",
+        operationType: "analysis",
+        description: `Optimal posting time analysis complete`,
+        totalResults: result.totalRows,
+        data: result.data,
+        downloadUrl: result.downloadUrl,
+      });
     } catch (error) {
       console.error("Optimal posting time analysis error:", error);
       return {
@@ -2710,18 +2613,15 @@ server.tool(
         markdown += `| Avg Caption Length | ${row.avg_caption_length?.toLocaleString() || "N/A"} chars |\n`;
       }
 
-      if (currentSessionHostType === "chatgpt") {
-        return {
-          structuredContent: {
-            analysis: { type: "viral_content_patterns", params },
-            data: result.data,
-            downloadUrl: result.downloadUrl,
-          },
-          content: [{ type: "text", text: `Viral content pattern analysis complete.\n\n**Download:** ${result.downloadUrl}` }],
-          _meta: { downloadUrl: result.downloadUrl, totalRows: result.totalRows },
-        };
-      }
-      return { content: [{ type: "text", text: markdown }] };
+      return buildToolResponse({
+        toolName: "analyze_viral_content_patterns",
+        toolCategory: "content_analysis",
+        operationType: "analysis",
+        description: `Viral content pattern analysis complete`,
+        totalResults: result.totalRows,
+        data: result.data,
+        downloadUrl: result.downloadUrl,
+      });
     } catch (error) {
       console.error("Viral content pattern analysis error:", error);
       return {
@@ -2772,26 +2672,15 @@ server.tool(
         };
       }
 
-      let markdown = `## Beauty Content Performance Analysis\n\n`;
-      markdown += `**Download CSV:** ${result.downloadUrl}\n\n`;
-      markdown += `| Content Type | Influencers | Content Count | Avg Likes | Engagement Rate |\n`;
-      markdown += `|--------------|-------------|---------------|-----------|----------------|\n`;
-      result.data.forEach((row: any) => {
-        markdown += `| ${row.beauty_content_type} | ${row.influencer_count?.toLocaleString()} | ${row.content_count?.toLocaleString()} | ${row.avg_likes?.toLocaleString()} | ${row.avg_engagement_rate}% |\n`;
+      return buildToolResponse({
+        toolName: "analyze_beauty_content_performance",
+        toolCategory: "content_analysis",
+        operationType: "analysis",
+        description: `Beauty content performance analysis complete. Found ${result.totalRows} content types.`,
+        totalResults: result.totalRows,
+        data: result.data,
+        downloadUrl: result.downloadUrl,
       });
-
-      if (currentSessionHostType === "chatgpt") {
-        return {
-          structuredContent: {
-            analysis: { type: "beauty_content_performance", params },
-            data: result.data,
-            downloadUrl: result.downloadUrl,
-          },
-          content: [{ type: "text", text: `Beauty content performance analysis complete.\n\n**Download:** ${result.downloadUrl}` }],
-          _meta: { downloadUrl: result.downloadUrl, totalRows: result.totalRows },
-        };
-      }
-      return { content: [{ type: "text", text: markdown }] };
     } catch (error) {
       console.error("Beauty content performance analysis error:", error);
       return {
@@ -2873,31 +2762,15 @@ server.tool(
         };
       }
 
-      let markdown = `## Multi-platform Influencer Search Results\n\n`;
-      markdown += `**Total:** ${result.totalRows} influencers\n`;
-      markdown += `**Download CSV:** ${result.downloadUrl}\n\n`;
-      markdown += `| Username | Followers | Channels | Tier |\n`;
-      markdown += `|----------|-----------|----------|------|\n`;
-      result.data.slice(0, 20).forEach((row: any) => {
-        const channels = Array.isArray(row.channels) ? row.channels.join(", ") : row.channels;
-        markdown += `| ${row.username} | ${row.followed_by?.toLocaleString() || "N/A"} | ${channels} | ${row.collaboration_tier} |\n`;
+      return buildToolResponse({
+        toolName: "search_multiplatform_influencers",
+        toolCategory: "multiplatform",
+        operationType: "search",
+        description: `Found ${result.totalRows} multi-platform influencers.`,
+        totalResults: result.totalRows,
+        data: result.data,
+        downloadUrl: result.downloadUrl,
       });
-      if (result.totalRows > 20) {
-        markdown += `\n_...and ${result.totalRows - 20} more. Download CSV for full list._\n`;
-      }
-
-      if (currentSessionHostType === "chatgpt") {
-        return {
-          structuredContent: {
-            search: { type: "multiplatform_influencers", params },
-            data: result.data,
-            downloadUrl: result.downloadUrl,
-          },
-          content: [{ type: "text", text: `Found ${result.totalRows} multi-platform influencers.\n\n**Download:** ${result.downloadUrl}` }],
-          _meta: { downloadUrl: result.downloadUrl, totalRows: result.totalRows },
-        };
-      }
-      return { content: [{ type: "text", text: markdown }] };
     } catch (error) {
       console.error("Multi-platform influencer search error:", error);
       return {
@@ -2960,31 +2833,15 @@ server.tool(
         };
       }
 
-      let markdown = `## Influencers with Shopping Links\n\n`;
-      markdown += `**Total:** ${result.totalRows} influencers\n`;
-      markdown += `**Download CSV:** ${result.downloadUrl}\n\n`;
-      markdown += `| Username | Followers | Shopping Channels | Tier |\n`;
-      markdown += `|----------|-----------|-------------------|------|\n`;
-      result.data.slice(0, 20).forEach((row: any) => {
-        const channels = Array.isArray(row.shopping_channels) ? row.shopping_channels.join(", ") : row.shopping_channels;
-        markdown += `| ${row.username} | ${row.followed_by?.toLocaleString() || "N/A"} | ${channels} | ${row.collaboration_tier} |\n`;
+      return buildToolResponse({
+        toolName: "find_influencers_with_shopping_links",
+        toolCategory: "multiplatform",
+        operationType: "search",
+        description: `Found ${result.totalRows} influencers with shopping links.`,
+        totalResults: result.totalRows,
+        data: result.data,
+        downloadUrl: result.downloadUrl,
       });
-      if (result.totalRows > 20) {
-        markdown += `\n_...and ${result.totalRows - 20} more. Download CSV for full list._\n`;
-      }
-
-      if (currentSessionHostType === "chatgpt") {
-        return {
-          structuredContent: {
-            search: { type: "shopping_links_influencers", params },
-            data: result.data,
-            downloadUrl: result.downloadUrl,
-          },
-          content: [{ type: "text", text: `Found ${result.totalRows} influencers with shopping links.\n\n**Download:** ${result.downloadUrl}` }],
-          _meta: { downloadUrl: result.downloadUrl, totalRows: result.totalRows },
-        };
-      }
-      return { content: [{ type: "text", text: markdown }] };
     } catch (error) {
       console.error("Shopping links influencer search error:", error);
       return {
@@ -3044,31 +2901,15 @@ server.tool(
         };
       }
 
-      let markdown = `## Contactable Influencers\n\n`;
-      markdown += `**Total:** ${result.totalRows} influencers\n`;
-      markdown += `**Download CSV:** ${result.downloadUrl}\n\n`;
-      markdown += `| Username | Followers | Contact Channels | Tier |\n`;
-      markdown += `|----------|-----------|------------------|------|\n`;
-      result.data.slice(0, 20).forEach((row: any) => {
-        const channels = Array.isArray(row.contact_channels) ? row.contact_channels.join(", ") : row.contact_channels;
-        markdown += `| ${row.username} | ${row.followed_by?.toLocaleString() || "N/A"} | ${channels} | ${row.collaboration_tier} |\n`;
+      return buildToolResponse({
+        toolName: "find_contactable_influencers",
+        toolCategory: "multiplatform",
+        operationType: "search",
+        description: `Found ${result.totalRows} contactable influencers.`,
+        totalResults: result.totalRows,
+        data: result.data,
+        downloadUrl: result.downloadUrl,
       });
-      if (result.totalRows > 20) {
-        markdown += `\n_...and ${result.totalRows - 20} more. Download CSV for full list._\n`;
-      }
-
-      if (currentSessionHostType === "chatgpt") {
-        return {
-          structuredContent: {
-            search: { type: "contactable_influencers", params },
-            data: result.data,
-            downloadUrl: result.downloadUrl,
-          },
-          content: [{ type: "text", text: `Found ${result.totalRows} contactable influencers.\n\n**Download:** ${result.downloadUrl}` }],
-          _meta: { downloadUrl: result.downloadUrl, totalRows: result.totalRows },
-        };
-      }
-      return { content: [{ type: "text", text: markdown }] };
     } catch (error) {
       console.error("Contactable influencer search error:", error);
       return {
@@ -3118,26 +2959,15 @@ server.tool(
         };
       }
 
-      let markdown = `## Platform Distribution Analysis\n\n`;
-      markdown += `**Download CSV:** ${result.downloadUrl}\n\n`;
-      markdown += `| Type | Channel | Influencers | Percentage |\n`;
-      markdown += `|------|---------|-------------|------------|\n`;
-      result.data.forEach((row: any) => {
-        markdown += `| ${row.link_type} | ${row.channel} | ${row.influencer_count?.toLocaleString()} | ${row.percentage}% |\n`;
+      return buildToolResponse({
+        toolName: "analyze_platform_distribution",
+        toolCategory: "multiplatform",
+        operationType: "analysis",
+        description: `Platform distribution analysis complete. Found ${result.totalRows} platform entries.`,
+        totalResults: result.totalRows,
+        data: result.data,
+        downloadUrl: result.downloadUrl,
       });
-
-      if (currentSessionHostType === "chatgpt") {
-        return {
-          structuredContent: {
-            analysis: { type: "platform_distribution", params },
-            data: result.data,
-            downloadUrl: result.downloadUrl,
-          },
-          content: [{ type: "text", text: `Platform distribution analysis complete.\n\n**Download:** ${result.downloadUrl}` }],
-          _meta: { downloadUrl: result.downloadUrl, totalRows: result.totalRows },
-        };
-      }
-      return { content: [{ type: "text", text: markdown }] };
     } catch (error) {
       console.error("Platform distribution analysis error:", error);
       return {
@@ -3173,70 +3003,17 @@ server.tool(
         };
       }
 
-      let markdown = `## Brand Platform Presence Comparison\n\n`;
-      markdown += `**Download CSV:** ${result.downloadUrl}\n\n`;
-      markdown += `| Brand | Type | Channel | Influencers | Total | Percentage |\n`;
-      markdown += `|-------|------|---------|-------------|-------|------------|\n`;
-      result.data.forEach((row: any) => {
-        markdown += `| ${row.brand} | ${row.link_type} | ${row.channel} | ${row.influencer_count?.toLocaleString()} | ${row.total_collaborators?.toLocaleString()} | ${row.percentage}% |\n`;
+      return buildToolResponse({
+        toolName: "compare_platform_presence",
+        toolCategory: "multiplatform",
+        operationType: "comparison",
+        description: `Brand platform presence comparison complete.`,
+        totalResults: result.totalRows,
+        data: result.data,
+        downloadUrl: result.downloadUrl,
       });
-
-      if (currentSessionHostType === "chatgpt") {
-        return {
-          structuredContent: {
-            analysis: { type: "platform_presence_comparison", params },
-            data: result.data,
-            downloadUrl: result.downloadUrl,
-          },
-          content: [{ type: "text", text: `Brand platform presence comparison complete.\n\n**Download:** ${result.downloadUrl}` }],
-          _meta: { downloadUrl: result.downloadUrl, totalRows: result.totalRows },
-        };
-      }
-      return { content: [{ type: "text", text: markdown }] };
     } catch (error) {
       console.error("Platform presence comparison error:", error);
-      return {
-        content: [{ type: "text", text: `Error: ${error instanceof Error ? error.message : String(error)}` }],
-        isError: true,
-      };
-    }
-  }
-);
-
-// get_profile_image - 인플루언서 프로필 이미지 URL 가져오기
-server.tool(
-  "get_profile_image",
-  "Get profile image URL for an influencer. Use this to fetch profile photos for PPT reports or visual presentations. Returns the image URL that can be downloaded and used in slides.",
-  {
-    user_id: z
-      .string()
-      .describe("The influencer's user ID (Instagram user ID)"),
-  },
-  async (params) => {
-    try {
-      const result = await getProfileImage(params.user_id);
-
-      if (!result) {
-        return {
-          content: [{ type: "text", text: `No profile image found for user: ${params.user_id}` }],
-          isError: true,
-        };
-      }
-
-      const markdown = `## Profile Image\n\n**User ID:** ${result.user_id}\n**Image URL:** ${result.image_url}`;
-
-      if (currentSessionHostType === "chatgpt") {
-        return {
-          structuredContent: {
-            user_id: result.user_id,
-            image_url: result.image_url,
-          },
-          content: [{ type: "text", text: markdown }],
-        };
-      }
-      return { content: [{ type: "text", text: markdown }] };
-    } catch (error) {
-      console.error("Get profile image error:", error);
       return {
         content: [{ type: "text", text: `Error: ${error instanceof Error ? error.message : String(error)}` }],
         isError: true,
