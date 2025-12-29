@@ -635,35 +635,35 @@ server.registerTool(
         demo_short: profile.general?.demo_short,
       }));
 
-      // 4. Return standardized response with structuredContent
-      console.error(`Returning results for host type: ${currentSessionHostType}`);
-
-      const response = buildToolResponse({
-        toolName: "search_influencers",
-        toolCategory: "influencer_search",
-        operationType: "search",
-        description: `Found ${searchResults.item.total_count} influencers for "${args.query}"`,
-        totalResults: searchResults.item.total_count,
-        criteria: args.query,
-        data: detailedProfiles,
-        // ChatGPT widget support
-        chatGptMeta: currentSessionHostType === "chatgpt" ? {
-          outputTemplate: "ui://widget/carousel.html",
-          widgetAccessible: true,
-          widgetData: {
-            allProfiles: profilesWithImages,
-            searchMetadata: {
-              query: args.query,
-              timestamp: new Date().toISOString(),
-              conversationId: searchResults.item.conversation_id,
-              totalCount: searchResults.item.total_count,
-              summary: searchResults.item.search_summary,
-            },
+      // 4. Return results (matching main branch format for carousel UI)
+      return {
+        structuredContent: {
+          summary: {
+            totalCount: searchResults.item.total_count,
+            query: args.query,
+            searchSummary: searchResults.item.search_summary,
           },
-        } : undefined,
-      });
-
-      return response;
+          influencers: detailedProfiles,
+        },
+        content: [
+          {
+            type: "text",
+            text: `Found ${searchResults.item.total_count} influencers. Search results for "${args.query}".`,
+          },
+        ],
+        _meta: {
+          "openai/outputTemplate": "ui://widget/carousel.html",
+          "openai/widgetAccessible": true,
+          allProfiles: profilesWithImages,
+          searchMetadata: {
+            query: args.query,
+            timestamp: new Date().toISOString(),
+            conversationId: searchResults.item.conversation_id,
+            totalCount: searchResults.item.total_count,
+            summary: searchResults.item.search_summary,
+          },
+        },
+      };
     } catch (error) {
       console.error("Search error:", error);
       const errorMessage =
@@ -2767,6 +2767,17 @@ app.post("/mcp", async (req, res) => {
         console.error("Received tools/list request");
         // Access MCP server's registered tools
         const registeredTools = (server as any)._registeredTools || {};
+
+        // Define explicit _meta for tools that need widget support
+        const toolMetaOverrides: Record<string, any> = {
+          "search_influencers": {
+            "openai/outputTemplate": "ui://widget/carousel.html",
+            "openai/widgetAccessible": true,
+            "openai/toolInvocation/invoking": "Searching for influencers...",
+            "openai/toolInvocation/invoked": "Loaded influencer profiles",
+          },
+        };
+
         const toolsList = Object.entries(registeredTools).map(([name, tool]: [string, any]) => {
           // Convert Zod schema to JSON Schema for ChatGPT compatibility
           let jsonSchema: any = { type: "object", properties: {} };
@@ -2787,7 +2798,7 @@ app.post("/mcp", async (req, res) => {
             name,
             description: tool.description,
             inputSchema: jsonSchema,
-            _meta: tool.annotations?._meta || {},
+            _meta: toolMetaOverrides[name] || tool.annotations?._meta || tool._meta || {},
           };
         });
         console.error(`Returning ${toolsList.length} tools`);
