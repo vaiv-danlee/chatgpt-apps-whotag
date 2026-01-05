@@ -14,7 +14,7 @@
 | Tool 정의 | ✅ 통과 | 25개 Tool에 Annotation 추가 완료 |
 | Resource 정의 | ✅ 통과 | 올바르게 구성됨 |
 | 인증/개인정보 | ⚠️ 확인 필요 | Privacy Policy URL 필요 |
-| UI 컴포넌트 | ⚠️ 권장 수정 | 100vh 사용 지양 권장 |
+| UI 컴포넌트 | ✅ 통과 | 100vh 제거 완료 |
 | 상거래/수익화 | ✅ 통과 | 금지 항목 없음 |
 
 ---
@@ -204,29 +204,18 @@ _meta: {
 
 ### 5.2 레이아웃 검토
 
-| 항목 | 상태 | 위치 | 권장 조치 |
-|------|------|------|----------|
-| `100vh` 사용 | ⚠️ 발견됨 | `styles.css:386, 494, 1099` | `maxHeight: "800px"` 권장 |
+| 항목 | 상태 | 위치 | 비고 |
+|------|------|------|------|
+| `100vh` 사용 | ✅ 수정 완료 | `styles.css` | 고정 값으로 변경됨 |
 | Null-safe 접근 | ✅ 올바름 | `App.tsx:17` | `toolResponseMetadata?.allProfiles \|\| []` |
 | window.openai API | ✅ 올바름 | `App.tsx:35, 48, 127` | 올바르게 사용됨 |
 
-**100vh 사용 위치**:
+**100vh 수정 완료**:
 ```css
-/* styles.css:386 */
-min-height: 100vh;
-
-/* styles.css:494 */
-max-height: calc(100vh - 200px);
-
-/* styles.css:1099 */
-max-height: calc(100vh - 160px);
-```
-
-**권장 수정**: ChatGPT 위젯에서는 `100vh` 대신 고정 값 사용 권장
-```css
-/* 권장 */
-max-height: 800px;
-overflow-y: auto;
+/* 변경 전 → 변경 후 */
+min-height: 100vh → min-height: 100%
+max-height: calc(100vh - 200px) → max-height: 600px
+max-height: calc(100vh - 160px) → max-height: 640px
 ```
 
 ### 5.3 window.openai API 사용
@@ -269,10 +258,11 @@ overflow-y: auto;
    - `2025-03-26` → `2025-11-25` 업데이트 완료
    - **파일**: `server/src/index.ts`
 
-3. **CSS 100vh 제거** ⚠️
-   - `min-height: 100vh` → `min-height: auto` 또는 고정값
-   - `max-height: calc(100vh - 200px)` → `max-height: 800px`
-   - **파일**: `web/src/styles.css:386, 494, 1099`
+3. **CSS 100vh 제거** ✅ 완료
+   - `min-height: 100vh` → `min-height: 100%`
+   - `max-height: calc(100vh - 200px)` → `max-height: 600px`
+   - `max-height: calc(100vh - 160px)` → `max-height: 640px`
+   - **파일**: `web/src/styles.css`
 
 ### 제출 전 준비
 
@@ -302,8 +292,8 @@ overflow-y: auto;
 - [ ] 금지 데이터 수집하지 않음 ✅
 
 ### UI
-- [ ] `100vh` 대신 고정 maxHeight 사용 ⚠️ 권장 수정
-- [ ] Null-safe 데이터 접근 ✅
+- [x] `100vh` 대신 고정 maxHeight 사용 ✅ 완료
+- [x] Null-safe 데이터 접근 ✅
 
 ---
 

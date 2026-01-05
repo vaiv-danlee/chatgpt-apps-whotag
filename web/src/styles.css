@@ -383,7 +383,7 @@
 .fullscreen-viewer.magazine-layout {
   position: relative;
   width: 100%;
-  min-height: 100vh;
+  min-height: 100%;
   background: #ffffff;
   display: flex;
   flex-direction: column;
@@ -491,7 +491,7 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
-  max-height: calc(100vh - 200px);
+  max-height: 600px;
 }
 
 .gallery-nav-btn {
@@ -1096,7 +1096,7 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
-  max-height: calc(100vh - 160px);
+  max-height: 640px;
 }
 
 /* Column 2: Profile Info */
