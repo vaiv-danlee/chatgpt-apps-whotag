@@ -463,6 +463,11 @@ server.registerTool(
         .optional()
         .describe("Maximum number of results (max 100)"),
     },
+    annotations: {
+      readOnlyHint: true,
+      openWorldHint: true,
+      destructiveHint: false,
+    },
     _meta: {
       "openai/outputTemplate": "ui://widget/carousel.html",
       "openai/widgetAccessible": true,
@@ -816,6 +821,11 @@ server.registerTool(
         .optional()
         .describe("Maximum results (default: 50, max: 500)"),
     },
+    annotations: {
+      readOnlyHint: true,
+      openWorldHint: true,
+      destructiveHint: false,
+    },
     _meta: {
       "openai/toolInvocation/invoking": "Searching influencers in BigQuery...",
       "openai/toolInvocation/invoked": "BigQuery search complete",
@@ -933,6 +943,11 @@ server.registerTool(
         .optional()
         .describe("Maximum results (default: 50, max: 500)"),
     },
+    annotations: {
+      readOnlyHint: true,
+      openWorldHint: true,
+      destructiveHint: false,
+    },
     _meta: {
       "openai/toolInvocation/invoking": "Searching brand collaborators...",
       "openai/toolInvocation/invoked": "Brand collaboration search complete",
@@ -1047,6 +1062,11 @@ server.registerTool(
         .optional()
         .describe("Maximum hashtags to return (default: 50)"),
     },
+    annotations: {
+      readOnlyHint: true,
+      openWorldHint: true,
+      destructiveHint: false,
+    },
     _meta: {
       "openai/toolInvocation/invoking": "Analyzing hashtag trends...",
       "openai/toolInvocation/invoked": "Hashtag trend analysis complete",
@@ -1145,6 +1165,11 @@ server.registerTool(
         .optional()
         .describe("Maximum results (default: 30)"),
     },
+    annotations: {
+      readOnlyHint: true,
+      openWorldHint: true,
+      destructiveHint: false,
+    },
     _meta: {
       "openai/toolInvocation/invoking": "Detecting emerging hashtags...",
       "openai/toolInvocation/invoked": "Emerging hashtag detection complete",
@@ -1235,6 +1260,11 @@ server.registerTool(
         .optional()
         .describe("Top N hashtags per country (default: 20)"),
     },
+    annotations: {
+      readOnlyHint: true,
+      openWorldHint: true,
+      destructiveHint: false,
+    },
     _meta: {
       "openai/toolInvocation/invoking": "Comparing regional hashtags...",
       "openai/toolInvocation/invoked": "Regional comparison complete",
@@ -1323,6 +1353,11 @@ server.registerTool(
         .default(30)
         .optional()
         .describe("Number of results to return (default: 30)"),
+    },
+    annotations: {
+      readOnlyHint: true,
+      openWorldHint: true,
+      destructiveHint: false,
     },
     _meta: {
       "openai/toolInvocation/invoking": "Analyzing beauty ingredient trends...",
@@ -1418,6 +1453,11 @@ server.registerTool(
         .optional()
         .describe("Maximum results (default: 50)"),
     },
+    annotations: {
+      readOnlyHint: true,
+      openWorldHint: true,
+      destructiveHint: false,
+    },
     _meta: {
       "openai/toolInvocation/invoking": "Analyzing brand mentions...",
       "openai/toolInvocation/invoked": "Brand mention analysis complete",
@@ -1512,6 +1552,11 @@ server.registerTool(
         .optional()
         .describe("Maximum results (default: 50)"),
     },
+    annotations: {
+      readOnlyHint: true,
+      openWorldHint: true,
+      destructiveHint: false,
+    },
     _meta: {
       "openai/toolInvocation/invoking": "Finding brand collaborators...",
       "openai/toolInvocation/invoked": "Brand collaborator search complete",
@@ -1600,6 +1645,11 @@ server.registerTool(
         .optional()
         .describe("Content type: all (default), media (feed posts), or reels"),
     },
+    annotations: {
+      readOnlyHint: true,
+      openWorldHint: true,
+      destructiveHint: false,
+    },
     _meta: {
       "openai/toolInvocation/invoking": "Analyzing sponsored content performance...",
       "openai/toolInvocation/invoked": "Sponsored content analysis complete",
@@ -1680,6 +1730,11 @@ server.registerTool(
         .optional()
         .describe("Analysis period in days (default: 90)"),
     },
+    annotations: {
+      readOnlyHint: true,
+      openWorldHint: true,
+      destructiveHint: false,
+    },
     _meta: {
       "openai/toolInvocation/invoking": "Comparing competitor brands...",
       "openai/toolInvocation/invoked": "Competitor comparison complete",
@@ -1757,6 +1812,11 @@ server.registerTool(
         .array(z.enum(["gender", "age_range", "collaboration_tier", "occupation"]))
         .optional()
         .describe("Grouping dimensions (default: ['gender', 'age_range'])"),
+    },
+    annotations: {
+      readOnlyHint: true,
+      openWorldHint: true,
+      destructiveHint: false,
     },
     _meta: {
       "openai/toolInvocation/invoking": "Analyzing market demographics...",
@@ -1850,6 +1910,11 @@ server.registerTool(
         .optional()
         .describe("Maximum results (default: 50)"),
     },
+    annotations: {
+      readOnlyHint: true,
+      openWorldHint: true,
+      destructiveHint: false,
+    },
     _meta: {
       "openai/toolInvocation/invoking": "Finding K-culture influencers...",
       "openai/toolInvocation/invoked": "K-culture search complete",
@@ -1935,6 +2000,11 @@ server.registerTool(
         ]))
         .optional()
         .describe("Filter by specific lifestages"),
+    },
+    annotations: {
+      readOnlyHint: true,
+      openWorldHint: true,
+      destructiveHint: false,
     },
     _meta: {
       "openai/toolInvocation/invoking": "Analyzing lifestage segments...",
@@ -2028,6 +2098,11 @@ server.registerTool(
         .optional()
         .describe("Filter by preferred brand tier"),
     },
+    annotations: {
+      readOnlyHint: true,
+      openWorldHint: true,
+      destructiveHint: false,
+    },
     _meta: {
       "openai/toolInvocation/invoking": "Analyzing beauty persona segments...",
       "openai/toolInvocation/invoked": "Beauty persona analysis complete",
@@ -2086,6 +2161,9 @@ server.tool(
   "analyze_engagement_metrics",
   getEngagementMetricsDescription(),
   {
+    readOnlyHint: true,
+    openWorldHint: true,
+    destructiveHint: false,
     country: z
       .array(z.string())
       .optional()
@@ -2150,6 +2228,9 @@ server.tool(
   "compare_content_formats",
   getContentFormatsDescription(),
   {
+    readOnlyHint: true,
+    openWorldHint: true,
+    destructiveHint: false,
     country: z
       .array(z.string())
       .optional()
@@ -2200,6 +2281,9 @@ server.tool(
   "find_optimal_posting_time",
   getOptimalPostingTimeDescription(),
   {
+    readOnlyHint: true,
+    openWorldHint: true,
+    destructiveHint: false,
     country: z
       .array(z.string())
       .optional()
@@ -2250,6 +2334,9 @@ server.tool(
   "analyze_viral_content_patterns",
   getViralContentDescription(),
   {
+    readOnlyHint: true,
+    openWorldHint: true,
+    destructiveHint: false,
     country: z
       .array(z.string())
       .optional()
@@ -2305,6 +2392,9 @@ server.tool(
   "analyze_beauty_content_performance",
   getBeautyContentDescription(),
   {
+    readOnlyHint: true,
+    openWorldHint: true,
+    destructiveHint: false,
     country: z
       .array(z.string())
       .optional()
@@ -2368,6 +2458,9 @@ server.tool(
   "search_multiplatform_influencers",
   getMultiplatformInfluencersDescription(),
   {
+    readOnlyHint: true,
+    openWorldHint: true,
+    destructiveHint: false,
     country: z
       .array(z.string())
       .optional()
@@ -2454,6 +2547,9 @@ server.tool(
   "find_influencers_with_shopping_links",
   getShoppingLinksDescription(),
   {
+    readOnlyHint: true,
+    openWorldHint: true,
+    destructiveHint: false,
     country: z
       .array(z.string())
       .optional()
@@ -2525,6 +2621,9 @@ server.tool(
   "find_contactable_influencers",
   getContactableInfluencersDescription(),
   {
+    readOnlyHint: true,
+    openWorldHint: true,
+    destructiveHint: false,
     country: z
       .array(z.string())
       .optional()
@@ -2593,6 +2692,9 @@ server.tool(
   "analyze_platform_distribution",
   getPlatformDistributionDescription(),
   {
+    readOnlyHint: true,
+    openWorldHint: true,
+    destructiveHint: false,
     country: z
       .array(z.string())
       .optional()
@@ -2651,6 +2753,9 @@ server.tool(
   "compare_platform_presence",
   getPlatformPresenceDescription(),
   {
+    readOnlyHint: true,
+    openWorldHint: true,
+    destructiveHint: false,
     brands: z
       .array(z.string())
       .min(1)
@@ -2713,7 +2818,7 @@ app.get("/mcp", (req, res) => {
       },
     ],
     "x-mcp": {
-      protocolVersion: "2025-03-26",
+      protocolVersion: "2025-11-25",
       capabilities: {
         tools: {},
         resources: {},
@@ -2744,7 +2849,7 @@ app.post("/mcp", async (req, res) => {
           jsonrpc: "2.0",
           id: id,
           result: {
-            protocolVersion: params?.protocolVersion || "2025-03-26",
+            protocolVersion: params?.protocolVersion || "2025-11-25",
             serverInfo: {
               name: "influencer-search",
               version: "1.0.0",
